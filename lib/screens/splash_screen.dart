@@ -25,7 +25,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Initialize animations
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
 
@@ -43,11 +43,11 @@ class _SplashScreenState extends State<SplashScreen>
     ));
 
     _scaleAnimation = Tween<double>(
-      begin: 0.3,
+      begin: 0.5,
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _scaleController,
-      curve: Curves.elasticOut,
+      curve: Curves.easeInOut,
     ));
 
     _startAnimations();
@@ -55,14 +55,14 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _startAnimations() {
+    // Mulai semua animasi sekaligus untuk smooth transition tanpa kedip
     _fadeController.forward();
-    Future.delayed(const Duration(milliseconds: 200), () {
-      _scaleController.forward();
-    });
+    _scaleController.forward();
   }
 
   void _navigateToNextScreen() {
-    Future.delayed(const Duration(seconds: 3), () {
+    // Delay sesuai dengan durasi animasi (1500ms fade + sedikit buffer)
+    Future.delayed(const Duration(milliseconds: 2000), () {
       if (mounted) {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
@@ -133,16 +133,20 @@ class _SplashScreenState extends State<SplashScreen>
           
                   const Spacer(flex: 2),
 
-                  // Main Logo - Full Image
-                  Transform.scale(
-                    scale: _scaleAnimation.value,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Image(
-                        image: Assets.logo.splash.provider()                        
+                    // Main Logo - Full Image
+                      ScaleTransition(
+                      scale: _scaleAnimation,
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.3,
+                        child: Image(
+                          image: Assets.logo.splash.provider(),
+                          fit: BoxFit.contain,
+                        ),
+                        ),
                       ),
-                    ),
-                  ),
+                      ),
 
                   const Spacer(flex: 2),
 
@@ -153,33 +157,12 @@ class _SplashScreenState extends State<SplashScreen>
                       padding: const EdgeInsets.only(bottom: 40),
                       child: Column(
                         children: [
-                          const Text(
-                            'by',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontFamily: 'Plus Jakarta Sans',
-                              fontWeight: FontWeight.w700,
-                              height: 1.50,
-                            ),
-                          ),
+                        
                           const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 12,
-                            ),
-                            decoration: ShapeDecoration(
-                              color: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(99),
-                              ),
-                            ),
-                            child: Image(
-                              image: Assets.logo.mekansm.provider(),
-                              height: 20,
-                              fit: BoxFit.contain,
-                            ),
+                          Image(
+                            image: Assets.logo.mekansm.provider(),
+                            height: 20,
+                            fit: BoxFit.contain,
                           ),
                         ],
                       ),

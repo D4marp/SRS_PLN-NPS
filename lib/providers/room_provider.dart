@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../models/room_model.dart';
 import '../services/room_service.dart';
 
@@ -13,6 +14,9 @@ class RoomProvider extends ChangeNotifier {
   String _searchQuery = '';
   String? _selectedCity;
   bool? _hasACFilter;
+
+  // Stream subscription management
+  StreamSubscription<List<RoomModel>>? _roomsSubscription;
 
   // Getters
   List<RoomModel> get rooms => _filteredRooms;
@@ -36,16 +40,20 @@ class RoomProvider extends ChangeNotifier {
     ]);
   }
 
-  // Load all rooms
+  /// Load all rooms with realtime updates from Firebase
+  /// Subscribe to stream untuk mendapatkan update otomatis
   Future<void> loadRooms() async {
     try {
       _setLoading(true);
       _clearError();
 
-      // Convert stream to future and wait for first event with timeout
+      // Cancel previous subscription jika ada
+      _roomsSubscription?.cancel();
+
+      // Get initial data
       final roomsStream = RoomService.getAllRooms();
       
-      // Wait for first event with a timeout
+      // Wait for first event dengan timeout
       _rooms = await roomsStream.first.timeout(
         const Duration(seconds: 5),
         onTimeout: () => [],
@@ -55,14 +63,23 @@ class RoomProvider extends ChangeNotifier {
       _setLoading(false);
       notifyListeners();
       
-      // Continue listening for updates
-      roomsStream.listen((rooms) {
-        _rooms = rooms;
-        _applyFilters();
-        notifyListeners();
-      });
+      debugPrint('✅ Initial rooms loaded: ${_rooms.length} rooms');
+      
+      // Continue listening untuk realtime updates
+      _roomsSubscription = roomsStream.listen(
+        (rooms) {
+          debugPrint('🔄 Rooms updated realtime: ${rooms.length} rooms');
+          _rooms = rooms;
+          _applyFilters();
+          notifyListeners();
+        },
+        onError: (error) {
+          debugPrint('❌ Error in rooms stream: $error');
+          _setError('Error updating rooms: $error');
+        },
+      );
     } catch (e) {
-      debugPrint('Error loading rooms: $e');
+      debugPrint('❌ Error loading rooms: $e');
       _setError(e.toString());
       _setLoading(false);
       _rooms = [];
@@ -184,12 +201,33 @@ class RoomProvider extends ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      final rooms = <RoomModel>[];
-      await for (final roomList in RoomService.getRoomsByCity(city)) {
-        rooms.clear();
-        rooms.addAll(roomList);
-        break; // Get the first emission
-      }
+      // Cancel previous subscription
+      _roomsSubscription?.cancel();
+
+      final roomsStream = RoomService.getRoomsByCity(city);
+      
+      // Get first emission
+      final rooms = await roomsStream.first.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => [],
+      );
+
+      debugPrint('✅ Rooms by city loaded: $city (${rooms.length} rooms)');
+
+      // Continue listening untuk realtime updates
+      _roomsSubscription = roomsStream.listen(
+        (updatedRooms) {
+          debugPrint('🔄 City rooms updated realtime: $city (${updatedRooms.length} rooms)');
+          _rooms = updatedRooms;
+          _applyFilters();
+          notifyListeners();
+        },
+        onError: (error) {
+          debugPrint('❌ Error in city rooms stream: $error');
+          _setError('Error loading rooms for $city: $error');
+        },
+      );
+
       return rooms;
     } catch (e) {
       _setError(e.toString());
@@ -307,5 +345,13 @@ class RoomProvider extends ChangeNotifier {
       _setError(e.toString());
       rethrow;
     }
+  }
+
+  /// Cleanup subscriptions ketika provider di-dispose
+  @override
+  void dispose() {
+    _roomsSubscription?.cancel();
+    debugPrint('🛑 RoomProvider subscriptions cancelled');
+    super.dispose();
   }
 }

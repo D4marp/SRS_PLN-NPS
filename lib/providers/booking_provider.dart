@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../models/booking_model.dart';
 import '../services/booking_service.dart';
 
@@ -14,6 +15,9 @@ class BookingProvider extends ChangeNotifier {
   DateTime? _selectedBookingDate;
   int _numberOfGuests = 1;
 
+  // Stream subscription management
+  StreamSubscription<List<BookingModel>>? _userBookingsSubscription;
+
   // Getters
   List<BookingModel> get userBookings => _userBookings;
   List<BookingModel> get upcomingBookings => _upcomingBookings;
@@ -24,17 +28,30 @@ class BookingProvider extends ChangeNotifier {
   DateTime? get selectedBookingDate => _selectedBookingDate;
   int get numberOfGuests => _numberOfGuests;
 
-  // Load user bookings
+  /// Load user bookings dengan realtime updates dari Firebase
+  /// Otomatis update ketika ada perubahan di Firestore
   void loadUserBookings(String userId) {
     try {
       _clearError();
 
-      BookingService.getUserBookings(userId).listen((bookings) {
-        _userBookings = bookings;
-        _separateBookings();
-        notifyListeners();
-      });
+      // Cancel previous subscription jika ada
+      _userBookingsSubscription?.cancel();
+
+      // Subscribe to stream untuk realtime updates
+      _userBookingsSubscription = BookingService.getUserBookings(userId).listen(
+        (bookings) {
+          debugPrint('✅ Bookings loaded realtime: ${bookings.length} bookings');
+          _userBookings = bookings;
+          _separateBookings();
+          notifyListeners();
+        },
+        onError: (error) {
+          debugPrint('❌ Error in bookings stream: $error');
+          _setError('Error loading bookings: $error');
+        },
+      );
     } catch (e) {
+      debugPrint('❌ Error setting up bookings listener: $e');
       _setError(e.toString());
     }
   }
@@ -212,5 +229,13 @@ class BookingProvider extends ChangeNotifier {
   // Get maximum selectable date (1 year from now)
   DateTime get maxSelectableDate =>
       DateTime.now().add(const Duration(days: 365));
+
+  /// Cleanup subscriptions ketika provider di-dispose
+  @override
+  void dispose() {
+    _userBookingsSubscription?.cancel();
+    debugPrint('🛑 BookingProvider subscriptions cancelled');
+    super.dispose();
+  }
 }
 

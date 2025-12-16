@@ -169,8 +169,8 @@ class $AssetsLogoGen {
   /// File path: assets/logo/mekansm.png
   AssetGenImage get mekansm => const AssetGenImage('assets/logo/mekansm.png');
 
-  /// File path: assets/logo/splash .png
-  AssetGenImage get splash => const AssetGenImage('assets/logo/splash .png');
+  /// File path: assets/logo/splash.png
+  AssetGenImage get splash => const AssetGenImage('assets/logo/splash.png');
 
   /// List of all assets
   List<AssetGenImage> get values => [mekansm, splash];

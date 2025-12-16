@@ -28,6 +28,10 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
   late Timer _timeUpdateTimer;
   DateTime _currentTime = DateTime.now();
   
+  // Cache untuk menghindari rebuild berlebihan
+  List<BookingModel>? _cachedBookings;
+  List<BookingModel>? _cachedTodayBookings;
+  
   @override
   void initState() {
     super.initState();
@@ -54,22 +58,30 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     final today = DateTime.now();
     final todayOnly = DateTime(today.year, today.month, today.day);
     
-    debugPrint('🔎 Filtering bookings for TODAY: ${todayOnly.toString().split(' ')[0]}');
-    debugPrint('📊 Total bookings to filter: ${bookings.length}');
-    
     final filtered = bookings.where((booking) {
       final bookingDateOnly = DateTime(booking.bookingDate.year, booking.bookingDate.month, booking.bookingDate.day);
-      final isToday = bookingDateOnly.isAtSameMomentAs(todayOnly);
-      
-      if (isToday) {
-        debugPrint('✅ MATCH - ${booking.userName ?? "Unknown"}: ${booking.checkInTime}-${booking.checkOutTime}');
-      }
-      
-      return isToday;
+      return bookingDateOnly.isAtSameMomentAs(todayOnly);
     }).toList();
     
-    debugPrint('📅 Filtered result: ${filtered.length} bookings for today');
     return filtered;
+  }
+
+  // Helper untuk check apakah data booking berubah
+  bool _hasBookingsChanged(List<BookingModel> newBookings) {
+    if (_cachedBookings == null || newBookings.length != _cachedBookings!.length) {
+      return true;
+    }
+    
+    // Check setiap booking untuk perubahan
+    for (int i = 0; i < newBookings.length; i++) {
+      if (newBookings[i].id != _cachedBookings![i].id ||
+          newBookings[i].status != _cachedBookings![i].status ||
+          newBookings[i].checkInTime != _cachedBookings![i].checkInTime) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   @override
@@ -543,16 +555,12 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     
-    debugPrint('🔨 _buildScheduleList called with REAL-TIME stream');
     final bookingProvider = context.watch<BookingProvider>();
     
     return StreamBuilder<List<BookingModel>>(
       stream: bookingProvider.getBookingsByRoomIdStream(widget.room.id),
       builder: (context, snapshot) {
-        debugPrint('📊 StreamBuilder state: connectionState=${snapshot.connectionState}, hasData=${snapshot.hasData}, hasError=${snapshot.hasError}');
-        
         if (snapshot.connectionState == ConnectionState.waiting) {
-          debugPrint('⏳ Waiting for initial stream data...');
           return const Center(
             child: CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -561,8 +569,6 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         }
         
         if (snapshot.hasError) {
-          debugPrint('❌ StreamBuilder error: ${snapshot.error}');
-          
           return Center(
             child: Text(
               'Error loading schedule',
@@ -575,172 +581,151 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         }
         
         final allBookings = snapshot.data ?? [];
-        debugPrint('📡 Real-time data: ${allBookings.length} total bookings received');
         
-        // Filter untuk hari ini saja
-        final bookings = _filterBookingsForToday(allBookings);
-        debugPrint('📅 Filtered to ${bookings.length} bookings for TODAY');
-        
-        if (bookings.isEmpty) {
-          return Stack(
-            children: [
-              Center(
-                child: Text(
-                  'No bookings for today',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: screenWidth * 0.012,
-                    fontFamily: 'Plus Jakarta Sans',
-                  ),
-                ),
-              ),
-              // Add Booking Button (Bottom Right)
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: GestureDetector(
-                  onTap: _showBookingDialog,
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: Assets.icon.addBook.svg(
-                          width: screenWidth * 0.057,
-                          height: screenWidth * 0.057,
-                         
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
+        // Update cache jika ada perubahan
+        if (_hasBookingsChanged(allBookings)) {
+          _cachedBookings = allBookings;
+          _cachedTodayBookings = _filterBookingsForToday(allBookings);
         }
         
+        final bookings = _cachedTodayBookings ?? [];
         return Stack(
           children: [
-            // Bookings List
-            ListView.builder(
-              itemCount: bookings.length,
-              padding: EdgeInsets.only(bottom: screenHeight * 0.15),
-              itemBuilder: (context, index) {
-                final booking = bookings[index];
-                
-                // Determine booking status color
-                Color borderColor;
-                Color statusBgColor;
-                String statusText;
-                
-                final now = DateTime.now();
-                final bookingStart = DateTime(
-                  booking.bookingDate.year,
-                  booking.bookingDate.month,
-                  booking.bookingDate.day,
-                  int.parse(booking.checkInTime.split(':')[0]),
-                  int.parse(booking.checkInTime.split(':')[1]),
-                );
-                final bookingEnd = DateTime(
-                  booking.bookingDate.year,
-                  booking.bookingDate.month,
-                  booking.bookingDate.day,
-                  int.parse(booking.checkOutTime.split(':')[0]),
-                  int.parse(booking.checkOutTime.split(':')[1]),
-                );
-                
-                if (now.isBefore(bookingStart)) {
-                  // Upcoming
-                  borderColor = const Color(0xFF16BC00);
-                  statusBgColor = const Color(0xFF129E00);
-                  statusText = 'Upcoming';
-                } else if (now.isAfter(bookingEnd)) {
-                  // Completed
-                  borderColor = const Color(0xFFEC0303);
-                  statusBgColor = const Color(0xFFEC0303);
-                  statusText = 'Completed';
-                } else {
-                  // Ongoing
-                  borderColor = const Color(0xFFF2C338);
-                  statusBgColor = const Color(0xFFFFBF00);
-                  statusText = 'Ongoing';
-                }
-                
-                return Container(
-                  margin: EdgeInsets.only(bottom: screenHeight * 0.02),
-                  padding: EdgeInsets.all(screenWidth * 0.012),
-                  decoration: BoxDecoration(
-                    color: const Color(0xBF170F0F),
-                    border: Border.all(color: Colors.white),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Row(
-                    children: [
-                      // Left border indicator
-                      Container(
-                        width: 3,
-                        height: screenHeight * 0.06,
-                        decoration: BoxDecoration(
-                          color: borderColor,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+            // Bookings List dengan smooth updates
+            bookings.isEmpty
+                ? Center(
+                    child: Text(
+                      'No bookings for today',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: screenWidth * 0.012,
+                        fontFamily: 'Plus Jakarta Sans',
                       ),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: bookings.length,
+                    padding: EdgeInsets.only(bottom: screenHeight * 0.15),
+                    // Disable default animations untuk menghindari flicker
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemBuilder: (context, index) {
+                      final booking = bookings[index];
                       
-                      SizedBox(width: screenWidth * 0.012),
+                      // Determine booking status color
+                      Color borderColor;
+                      Color statusBgColor;
+                      String statusText;
                       
-                      // Booking Info
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      final now = DateTime.now();
+                      final bookingStart = DateTime(
+                        booking.bookingDate.year,
+                        booking.bookingDate.month,
+                        booking.bookingDate.day,
+                        int.parse(booking.checkInTime.split(':')[0]),
+                        int.parse(booking.checkInTime.split(':')[1]),
+                      );
+                      final bookingEnd = DateTime(
+                        booking.bookingDate.year,
+                        booking.bookingDate.month,
+                        booking.bookingDate.day,
+                        int.parse(booking.checkOutTime.split(':')[0]),
+                        int.parse(booking.checkOutTime.split(':')[1]),
+                      );
+                      
+                      if (now.isBefore(bookingStart)) {
+                        // Upcoming
+                        borderColor = const Color(0xFF16BC00);
+                        statusBgColor = const Color(0xFF129E00);
+                        statusText = 'Upcoming';
+                      } else if (now.isAfter(bookingEnd)) {
+                        // Completed
+                        borderColor = const Color(0xFFEC0303);
+                        statusBgColor = const Color(0xFFEC0303);
+                        statusText = 'Completed';
+                      } else {
+                        // Ongoing
+                        borderColor = const Color(0xFFF2C338);
+                        statusBgColor = const Color(0xFFFFBF00);
+                        statusText = 'Ongoing';
+                      }
+                      
+                      return Container(
+                        margin: EdgeInsets.only(bottom: screenHeight * 0.02),
+                        padding: EdgeInsets.all(screenWidth * 0.012),
+                        decoration: BoxDecoration(
+                          color: const Color(0xBF170F0F),
+                          border: Border.all(color: Colors.white),
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                        child: Row(
                           children: [
-                            Text(
-                              '${booking.checkInTime}-${booking.checkOutTime}',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: screenWidth * 0.0112,
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontWeight: FontWeight.w700,
+                            // Left border indicator
+                            Container(
+                              width: 3,
+                              height: screenHeight * 0.06,
+                              decoration: BoxDecoration(
+                                color: borderColor,
+                                borderRadius: BorderRadius.circular(2),
                               ),
                             ),
-                            SizedBox(height: screenHeight * 0.005),
-                            Text(
-                              'Booking ID #${booking.id.substring(0, 8).toUpperCase()} | Booked by ${booking.userName ?? "Unknown"}',
-                              style: TextStyle(
-                                color: const Color(0xFFBCBCBC),
-                                fontSize: screenWidth * 0.0087,
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontWeight: FontWeight.w500,
+                            
+                            SizedBox(width: screenWidth * 0.012),
+                            
+                            // Booking Info
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${booking.checkInTime}-${booking.checkOutTime}',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: screenWidth * 0.0112,
+                                      fontFamily: 'Plus Jakarta Sans',
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  SizedBox(height: screenHeight * 0.005),
+                                  Text(
+                                    'Booking ID #${booking.id.substring(0, 8).toUpperCase()} | Booked by ${booking.userName ?? "Unknown"}',
+                                    style: TextStyle(
+                                      color: const Color(0xFFBCBCBC),
+                                      fontSize: screenWidth * 0.0087,
+                                      fontFamily: 'Plus Jakarta Sans',
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            ),
+                            
+                            // Status Badge
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: screenWidth * 0.0062,
+                                vertical: screenHeight * 0.005,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusBgColor,
+                                borderRadius: BorderRadius.circular(37),
+                              ),
+                              child: Text(
+                                statusText,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: screenWidth * 0.0087,
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                      
-                      // Status Badge
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.0062,
-                          vertical: screenHeight * 0.005,
-                        ),
-                        decoration: BoxDecoration(
-                          color: statusBgColor,
-                          borderRadius: BorderRadius.circular(37),
-                        ),
-                        child: Text(
-                          statusText,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: screenWidth * 0.0087,
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
-                );
-              },
-            ),
             
             // Add Booking Button (Bottom Right)
             Positioned(
@@ -748,16 +733,11 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
               bottom: 0,
               child: GestureDetector(
                 onTap: _showBookingDialog,
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Assets.icon.addBook.svg(
-                        width: screenWidth * 0.057,
-                        height: screenWidth * 0.057,
-                       
-                      ),
-                    ),
-                  ],
+                child: Center(
+                  child: Assets.icon.addBook.svg(
+                    width: screenWidth * 0.057,
+                    height: screenWidth * 0.057,
+                  ),
                 ),
               ),
             ),
