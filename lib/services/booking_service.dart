@@ -206,9 +206,6 @@ class BookingService {
     String? excludeBookingId,
   }) async {
     try {
-      final startOfDay = DateTime(date.year, date.month, date.day);
-      final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
-
       // Simplified query - only query by roomId to avoid composite index
       QuerySnapshot snapshot = await _firestore
           .collection(_collection)

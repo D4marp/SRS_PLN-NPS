@@ -746,20 +746,6 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
       },
     );
   }
-  
-  Color _getStatusColor(BookingStatus status) {
-    switch (status) {
-      case BookingStatus.pending:
-        return Colors.orange;
-      case BookingStatus.confirmed:
-        return Colors.green;
-      case BookingStatus.cancelled:
-        return Colors.red;
-      case BookingStatus.completed:
-        return Colors.blue;
-    }
-  }
-
   void _showBookingDialog() {
     showModalBottomSheet(
       context: context,
