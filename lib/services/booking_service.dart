@@ -113,17 +113,20 @@ class BookingService {
     }
   }
 
-  // Get user bookings
+  // Get user bookings - Optimized untuk menghindari composite index requirement
   static Stream<List<BookingModel>> getUserBookings(String userId) {
     return _firestore
         .collection(_collection)
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      final bookings = snapshot.docs
           .map((doc) => BookingModel.fromJson({...doc.data(), 'id': doc.id}))
           .toList();
+      
+      // Sort di client-side untuk menghindari composite index
+      bookings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return bookings;
     });
   }
 
@@ -206,29 +209,41 @@ class BookingService {
       final startOfDay = DateTime(date.year, date.month, date.day);
       final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
+      // Simplified query - only query by roomId to avoid composite index
       QuerySnapshot snapshot = await _firestore
           .collection(_collection)
           .where('roomId', isEqualTo: roomId)
-          .where('checkInDate',
-              isLessThanOrEqualTo: endOfDay.millisecondsSinceEpoch)
-          .where('checkOutDate',
-              isGreaterThanOrEqualTo: startOfDay.millisecondsSinceEpoch)
-          .where('status', whereIn: ['pending', 'confirmed']).get();
+          .get();
 
       for (var doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
         if (excludeBookingId != null && doc.id == excludeBookingId) continue;
         
-        // Check time overlap
-        final bookedStart = data['checkInTime'] as String;
-        final bookedEnd = data['checkOutTime'] as String;
+        // Filter status di client-side
+        final status = data['status'] as String?;
+        if (status != 'pending' && status != 'confirmed') continue;
         
-        if (_isTimeOverlap(startTime, endTime, bookedStart, bookedEnd)) {
-          return false;
+        // Filter date di client-side
+        final bookingDateMs = data['bookingDate'] as int? ?? 0;
+        final bookingDate = DateTime.fromMillisecondsSinceEpoch(bookingDateMs);
+        final bookingDateOnly = DateTime(bookingDate.year, bookingDate.month, bookingDate.day);
+        final dateOnly = DateTime(date.year, date.month, date.day);
+        
+        if (!bookingDateOnly.isAtSameMomentAs(dateOnly)) continue;
+        
+        // Check time overlap
+        final bookedStart = data['checkInTime'] as String?;
+        final bookedEnd = data['checkOutTime'] as String?;
+        
+        if (bookedStart != null && bookedEnd != null) {
+          if (_isTimeOverlap(startTime, endTime, bookedStart, bookedEnd)) {
+            return false;
+          }
         }
       }
       return true;
     } catch (e) {
+      debugPrint('❌ Error checking time slot availability: $e');
       throw 'Error checking time slot availability: $e';
     }
   }

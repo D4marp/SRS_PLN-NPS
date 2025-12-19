@@ -42,6 +42,13 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
     }
   }
 
+  void _retryLoadBookings() {
+    final bookingProvider =
+        Provider.of<BookingProvider>(context, listen: false);
+    bookingProvider.clearError();
+    _loadBookings();
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -136,13 +143,65 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
                         ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    bookingProvider.errorMessage!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.secondaryText,
-                        ),
-                    textAlign: TextAlign.center,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                    child: Text(
+                      bookingProvider.errorMessage!,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.secondaryText,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
+                  const SizedBox(height: AppSpacing.lg),
+                  // Retry button
+                  ElevatedButton.icon(
+                    onPressed: _retryLoadBookings,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryRed,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.md,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  // Info about composite index
+                  if (bookingProvider.errorMessage!.contains('failed-precondition') ||
+                      bookingProvider.errorMessage!.contains('composite index'))
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                      child: Container(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          border: Border.all(color: Colors.blue.shade200),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Firebase Index Required',
+                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue.shade900,
+                                  ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'This app requires a Firestore composite index. Click the link in the error message above to create it in Firebase Console.',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.blue.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             );
