@@ -158,17 +158,20 @@ class BookingService {
     });
   }
 
-  // Get bookings by status
+  // Get bookings by status - Optimized untuk menghindari composite index
   static Stream<List<BookingModel>> getBookingsByStatus(BookingStatus status) {
     return _firestore
         .collection(_collection)
         .where('status', isEqualTo: status.name)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      final bookings = snapshot.docs
           .map((doc) => BookingModel.fromJson({...doc.data(), 'id': doc.id}))
           .toList();
+      
+      // Sort di client-side untuk menghindari composite index
+      bookings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return bookings;
     });
   }
 
@@ -311,42 +314,61 @@ class BookingService {
     }
   }
 
-  // Get upcoming bookings for a user
+  // Get upcoming bookings for a user - Optimized untuk menghindari composite index
   static Future<List<BookingModel>> getUpcomingBookings(String userId) async {
     try {
       final now = DateTime.now();
+      
+      // Simplified query - hanya filter by userId
       QuerySnapshot snapshot = await _firestore
           .collection(_collection)
           .where('userId', isEqualTo: userId)
-          .where('checkInDate', isGreaterThan: now.millisecondsSinceEpoch)
-          .where('status', whereIn: ['pending', 'confirmed'])
-          .orderBy('checkInDate')
           .get();
 
-      return snapshot.docs
+      final bookings = snapshot.docs
           .map((doc) => BookingModel.fromJson(
               {...doc.data() as Map<String, dynamic>, 'id': doc.id}))
+          .where((booking) {
+            // Filter di client-side
+            return booking.bookingDate.isAfter(now) &&
+                (booking.status == BookingStatus.pending ||
+                 booking.status == BookingStatus.confirmed);
+          })
           .toList();
+
+      // Sort di client-side
+      bookings.sort((a, b) => a.bookingDate.compareTo(b.bookingDate));
+      return bookings;
     } catch (e) {
       throw 'Error fetching upcoming bookings: $e';
     }
   }
 
-  // Get past bookings for a user
+  // Get past bookings for a user - Optimized untuk menghindari composite index
   static Future<List<BookingModel>> getPastBookings(String userId) async {
     try {
       final now = DateTime.now();
+      
+      // Simplified query - hanya filter by userId
       QuerySnapshot snapshot = await _firestore
           .collection(_collection)
           .where('userId', isEqualTo: userId)
-          .where('checkOutDate', isLessThan: now.millisecondsSinceEpoch)
-          .orderBy('checkOutDate', descending: true)
           .get();
 
-      return snapshot.docs
+      final bookings = snapshot.docs
           .map((doc) => BookingModel.fromJson(
               {...doc.data() as Map<String, dynamic>, 'id': doc.id}))
+          .where((booking) {
+            // Filter di client-side
+            return booking.bookingDate.isBefore(now) ||
+                booking.status == BookingStatus.cancelled ||
+                booking.status == BookingStatus.completed;
+          })
           .toList();
+
+      // Sort di client-side
+      bookings.sort((a, b) => b.bookingDate.compareTo(a.bookingDate));
+      return bookings;
     } catch (e) {
       throw 'Error fetching past bookings: $e';
     }
