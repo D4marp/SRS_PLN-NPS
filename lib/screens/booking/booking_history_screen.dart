@@ -37,11 +37,19 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
 
     if (authProvider.user != null) {
       debugPrint('🔥 Loading user bookings with real-time stream for user: ${authProvider.user!.uid}');
+      debugPrint('📊 Current state before loading:');
+      debugPrint('   - isLoading: ${bookingProvider.isLoading}');
+      debugPrint('   - userBookings: ${bookingProvider.userBookings.length}');
+      debugPrint('   - errorMessage: ${bookingProvider.errorMessage}');
+      
       bookingProvider.loadUserBookings(authProvider.user!.uid);
+    } else {
+      debugPrint('❌ Cannot load bookings: user is null');
     }
   }
 
   void _retryLoadBookings() {
+    debugPrint('🔄 Retrying to load bookings...');
     final bookingProvider =
         Provider.of<BookingProvider>(context, listen: false);
     bookingProvider.clearError();
@@ -120,7 +128,15 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
           ),
           body: Consumer<BookingProvider>(
         builder: (context, bookingProvider, child) {
+          debugPrint('📊 BookingHistoryScreen - Consumer rebuild');
+          debugPrint('   - isLoading: ${bookingProvider.isLoading}');
+          debugPrint('   - userBookings count: ${bookingProvider.userBookings.length}');
+          debugPrint('   - upcomingBookings count: ${bookingProvider.upcomingBookings.length}');
+          debugPrint('   - pastBookings count: ${bookingProvider.pastBookings.length}');
+          debugPrint('   - errorMessage: ${bookingProvider.errorMessage}');
+          
           if (bookingProvider.isLoading && bookingProvider.userBookings.isEmpty) {
+            debugPrint('🔄 Showing shimmer loading...');
             return _buildShimmerLoading();
           }
 
@@ -259,30 +275,57 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
   }
 
   Widget _buildBookingsList(List<BookingModel> bookings, String type) {
+    final bookingProvider = context.watch<BookingProvider>();
+    
+    debugPrint('📋 _buildBookingsList called for type: $type');
+    debugPrint('   - bookings.length: ${bookings.length}');
+    debugPrint('   - isLoading: ${bookingProvider.isLoading}');
+    
+    // Show shimmer during loading or when refreshing
+    if (bookingProvider.isLoading && bookings.isEmpty) {
+      debugPrint('🔄 Showing shimmer for empty list...');
+      return _buildShimmerBookingsList();
+    }
+    
     if (bookings.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      return RefreshIndicator(
+        onRefresh: () async {
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+          if (authProvider.user != null) {
+            await bookingProvider.refreshBookings(authProvider.user!.uid);
+          }
+        },
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
           children: [
-            Icon(
-              _getEmptyStateIcon(type),
-              size: 64,
-              color: AppColors.lightText,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              _getEmptyStateTitle(type),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppColors.secondaryText,
-                  ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              _getEmptyStateSubtitle(type),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _getEmptyStateIcon(type),
+                    size: 64,
                     color: AppColors.lightText,
                   ),
-              textAlign: TextAlign.center,
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    _getEmptyStateTitle(type),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.secondaryText,
+                        ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    _getEmptyStateSubtitle(type),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.lightText,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -292,31 +335,74 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
     return RefreshIndicator(
       onRefresh: () async {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        final bookingProvider =
-            Provider.of<BookingProvider>(context, listen: false);
 
         if (authProvider.user != null) {
           await bookingProvider.refreshBookings(authProvider.user!.uid);
         }
       },
-      child: ListView.builder(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        itemCount: bookings.length,
-        itemBuilder: (context, index) {
-          final booking = bookings[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: BookingCard(
-              booking: booking,
-              onTap: () {
-                // Navigate to booking details
-                _showBookingDetails(booking);
+      child: bookingProvider.isLoading && bookings.isNotEmpty
+          ? Stack(
+              children: [
+                // Show existing bookings
+                ListView.builder(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  itemCount: bookings.length,
+                  itemBuilder: (context, index) {
+                    final booking = bookings[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: BookingCard(
+                        booking: booking,
+                        onTap: () {
+                          _showBookingDetails(booking);
+                        },
+                        onCancel:
+                            booking.canBeCancelled ? () => _cancelBooking(booking) : null,
+                      ),
+                    );
+                  },
+                ),
+                // Show loading overlay
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.white.withOpacity(0.7),
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              itemCount: bookings.length,
+              itemBuilder: (context, index) {
+                final booking = bookings[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: BookingCard(
+                    booking: booking,
+                    onTap: () {
+                      _showBookingDetails(booking);
+                    },
+                    onCancel:
+                        booking.canBeCancelled ? () => _cancelBooking(booking) : null,
+                  ),
+                );
               },
-              onCancel:
-                  booking.canBeCancelled ? () => _cancelBooking(booking) : null,
             ),
-          );
-        },
+    );
+  }
+
+  Widget _buildShimmerBookingsList() {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: ListView.builder(
+        itemCount: 5,
+        itemBuilder: (context, index) => Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: _buildShimmerBookingCard(),
+        ),
       ),
     );
   }
