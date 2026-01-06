@@ -611,7 +611,7 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
                 child: TextField(
                   controller: _purposeController,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Colors.black87,
                     fontSize: 16,
                     fontFamily: 'Plus Jakarta Sans',
                     fontWeight: FontWeight.w600,
@@ -619,7 +619,7 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
                   decoration: const InputDecoration(
                     hintText: 'e.g. Meeting, Training, Class ...',
                     hintStyle: TextStyle(
-                      color: Color(0xFFBBBBBB),
+                      color: Colors.black45,
                       fontSize: 16,
                       fontFamily: 'Plus Jakarta Sans',
                       fontWeight: FontWeight.w600,
