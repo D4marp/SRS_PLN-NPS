@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import '../../models/room_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/booking_provider.dart';
@@ -21,24 +22,40 @@ class BookingFormScreen extends StatefulWidget {
 
 class _BookingFormScreenState extends State<BookingFormScreen> {
   DateTime _selectedDate = DateTime.now();
-  TimeOfDay _startTime = const TimeOfDay(hour: 8, minute: 0);
+  late TimeOfDay _startTime;
   int _durationMinutes = 90;
   int _guestCount = 1;
   late TextEditingController _customDurationController;
   late TextEditingController _purposeController;
   bool _isBooking = false;
+  late Timer _timeUpdateTimer;
 
   @override
   void initState() {
     super.initState();
     _customDurationController = TextEditingController();
     _purposeController = TextEditingController();
+    
+    // Set start time to current time
+    final now = DateTime.now();
+    _startTime = TimeOfDay(hour: now.hour, minute: now.minute);
+    
+    // Update time every second for realtime display
+    _timeUpdateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          final now = DateTime.now();
+          _startTime = TimeOfDay(hour: now.hour, minute: now.minute);
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
     _customDurationController.dispose();
     _purposeController.dispose();
+    _timeUpdateTimer.cancel();
     super.dispose();
   }
 
@@ -616,59 +633,6 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Start Time Section
-                                Text(
-                                  'Start Time',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                    fontFamily: 'Plus Jakarta Sans',
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                                GestureDetector(
-                                  onTap: () async {
-                                    final selectedTime = await showTimePicker(
-                                      context: context,
-                                      initialTime: _startTime,
-                                    );
-                                    if (selectedTime != null) {
-                                      setState(() => _startTime = selectedTime);
-                                    }
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: AppSpacing.md,
-                                      vertical: AppSpacing.sm,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.05),
-                                      border: Border.all(
-                                        color: Colors.white.withOpacity(0.3),
-                                        width: 1.5,
-                                      ),
-                                      borderRadius: BorderRadius.circular(11),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          _timeToString(_startTime),
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                            fontFamily: 'Plus Jakarta Sans',
-                                          ),
-                                        ),
-                                        const Icon(Icons.access_time, color: Colors.white),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.lg),
-
                                 // Duration Section
                                 Text(
                                   'Duration',
