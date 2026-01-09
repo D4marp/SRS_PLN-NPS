@@ -108,36 +108,6 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     return '${days[_currentTime.weekday - 1]}, ${_currentTime.day} ${months[_currentTime.month - 1]} ${_currentTime.year}';
   }
 
-  // Check if room is currently available based on bookings
-  bool _isRoomCurrentlyAvailable(List<BookingModel> todayBookings) {
-    final now = DateTime.now();
-    
-    // Check if there's any ongoing booking
-    for (var booking in todayBookings) {
-      final bookingStart = DateTime(
-        booking.bookingDate.year,
-        booking.bookingDate.month,
-        booking.bookingDate.day,
-        int.parse(booking.checkInTime.split(':')[0]),
-        int.parse(booking.checkInTime.split(':')[1]),
-      );
-      final bookingEnd = DateTime(
-        booking.bookingDate.year,
-        booking.bookingDate.month,
-        booking.bookingDate.day,
-        int.parse(booking.checkOutTime.split(':')[0]),
-        int.parse(booking.checkOutTime.split(':')[1]),
-      );
-      
-      // If current time is between booking start and end, room is unavailable
-      if (now.isAfter(bookingStart) && now.isBefore(bookingEnd)) {
-        return false;
-      }
-    }
-    
-    return true; // No ongoing bookings, room is available
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
@@ -548,7 +518,42 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         bool isAvailable = true;
         
         if (snapshot.hasData && snapshot.data != null) {
-          isAvailable = _isRoomCurrentlyAvailable(snapshot.data!);
+          // Filter bookings for today only
+          final todayBookings = _filterBookingsForToday(snapshot.data!);
+          debugPrint('🔍 Availability Check - Current Time: ${_getCurrentTimeString()}');
+          debugPrint('📅 Today Bookings Count: ${todayBookings.length}');
+          
+          // Check if there's any ongoing booking
+          final now = DateTime.now();
+          for (var booking in todayBookings) {
+            final bookingStart = DateTime(
+              booking.bookingDate.year,
+              booking.bookingDate.month,
+              booking.bookingDate.day,
+              int.parse(booking.checkInTime.split(':')[0]),
+              int.parse(booking.checkInTime.split(':')[1]),
+            );
+            final bookingEnd = DateTime(
+              booking.bookingDate.year,
+              booking.bookingDate.month,
+              booking.bookingDate.day,
+              int.parse(booking.checkOutTime.split(':')[0]),
+              int.parse(booking.checkOutTime.split(':')[1]),
+            );
+            
+            debugPrint('   Booking: ${booking.checkInTime}-${booking.checkOutTime} | Start: $bookingStart | End: $bookingEnd');
+            
+            // If current time is between booking start and end, room is occupied
+            if (now.isAfter(bookingStart) && now.isBefore(bookingEnd)) {
+              debugPrint('   ⚠️ Booking is ONGOING - Room OCCUPIED');
+              isAvailable = false;
+              break;
+            }
+          }
+          
+          if (isAvailable) {
+            debugPrint('   ✅ No ongoing bookings - Room AVAILABLE');
+          }
         }
         
         return Container(
@@ -603,6 +608,10 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     
     final bookingProvider = context.watch<BookingProvider>();
     
+    // Use _currentTime as a trigger to rebuild every 8 seconds
+    // This ensures schedule updates in sync with availability status
+    debugPrint('🔄 Schedule List rebuilding - Time: ${_getCurrentTimeString()}');
+    
     return StreamBuilder<List<BookingModel>>(
       stream: bookingProvider.getBookingsByRoomIdStream(widget.room.id),
       builder: (context, snapshot) {
@@ -632,6 +641,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         if (_hasBookingsChanged(allBookings)) {
           _cachedBookings = allBookings;
           _cachedTodayBookings = _filterBookingsForToday(allBookings);
+          debugPrint('📊 Schedule cache updated - Today bookings: ${_cachedTodayBookings?.length ?? 0}');
         }
         
         final bookings = _cachedTodayBookings ?? [];
