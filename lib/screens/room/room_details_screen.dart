@@ -45,8 +45,8 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     debugPrint('🚀 RoomDetailsScreen initState: Room ID = ${widget.room.id}');
     debugPrint('🔥 Using REAL-TIME stream - auto-sync enabled!');
     
-    // Update current time every second
-    _timeUpdateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    // Update availability status every 8 seconds
+    _timeUpdateTimer = Timer.periodic(const Duration(seconds: 8), (timer) {
       if (mounted) {
         setState(() {
           _currentTime = DateTime.now();
@@ -106,6 +106,36 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     final months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     return '${days[_currentTime.weekday - 1]}, ${_currentTime.day} ${months[_currentTime.month - 1]} ${_currentTime.year}';
+  }
+
+  // Check if room is currently available based on bookings
+  bool _isRoomCurrentlyAvailable(List<BookingModel> todayBookings) {
+    final now = DateTime.now();
+    
+    // Check if there's any ongoing booking
+    for (var booking in todayBookings) {
+      final bookingStart = DateTime(
+        booking.bookingDate.year,
+        booking.bookingDate.month,
+        booking.bookingDate.day,
+        int.parse(booking.checkInTime.split(':')[0]),
+        int.parse(booking.checkInTime.split(':')[1]),
+      );
+      final bookingEnd = DateTime(
+        booking.bookingDate.year,
+        booking.bookingDate.month,
+        booking.bookingDate.day,
+        int.parse(booking.checkOutTime.split(':')[0]),
+        int.parse(booking.checkOutTime.split(':')[1]),
+      );
+      
+      // If current time is between booking start and end, room is unavailable
+      if (now.isAfter(bookingStart) && now.isBefore(bookingEnd)) {
+        return false;
+      }
+    }
+    
+    return true; // No ongoing bookings, room is available
   }
 
   @override
@@ -438,49 +468,8 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                         ),
                       ),
                       
-                      // Available Status
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.015,
-                          vertical: screenHeight * 0.025,
-                        ),
-                        decoration: BoxDecoration(
-                          color: widget.room.isAvailable 
-                              ? const Color(0xFFE3FFDF)
-                              : const Color(0xFFFFDFDF),
-                          border: Border.all(
-                            color: widget.room.isAvailable
-                                ? const Color(0xFF16BC00)
-                                : const Color(0xFFEC0303),
-                            width: 3,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              widget.room.isAvailable
-                                  ? Icons.check_circle
-                                  : Icons.cancel,
-                              color: widget.room.isAvailable
-                                  ? const Color(0xFF16BC00)
-                                  : const Color(0xFFEC0303),
-                              size: screenWidth * 0.025,
-                            ),
-                            SizedBox(width: screenWidth * 0.006),
-                            Text(
-                              widget.room.isAvailable ? 'Available' : 'Unavailable',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: screenWidth * 0.015,
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      // Available Status - Based on actual bookings
+                      _buildAvailabilityStatus(screenWidth, screenHeight),
                     ],
                   ),
                   
@@ -549,6 +538,62 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAvailabilityStatus(double screenWidth, double screenHeight) {
+    return StreamBuilder<List<BookingModel>>(
+      stream: context.read<BookingProvider>().getBookingsByRoomIdStream(widget.room.id),
+      builder: (context, snapshot) {
+        bool isAvailable = true;
+        
+        if (snapshot.hasData && snapshot.data != null) {
+          isAvailable = _isRoomCurrentlyAvailable(snapshot.data!);
+        }
+        
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: screenWidth * 0.015,
+            vertical: screenHeight * 0.025,
+          ),
+          decoration: BoxDecoration(
+            color: isAvailable 
+                ? const Color(0xFFE3FFDF)
+                : const Color(0xFFFFDFDF),
+            border: Border.all(
+              color: isAvailable
+                  ? const Color(0xFF16BC00)
+                  : const Color(0xFFEC0303),
+              width: 3,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isAvailable
+                    ? Icons.check_circle
+                    : Icons.cancel,
+                color: isAvailable
+                    ? const Color(0xFF16BC00)
+                    : const Color(0xFFEC0303),
+                size: screenWidth * 0.025,
+              ),
+              SizedBox(width: screenWidth * 0.006),
+              Text(
+                isAvailable ? 'Available' : 'Unavailable',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: screenWidth * 0.015,
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
