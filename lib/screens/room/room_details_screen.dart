@@ -520,40 +520,77 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         if (snapshot.hasData && snapshot.data != null) {
           // Filter bookings for today only
           final todayBookings = _filterBookingsForToday(snapshot.data!);
-          debugPrint('🔍 Availability Check - Current Time: ${_getCurrentTimeString()}');
-          debugPrint('📅 Today Bookings Count: ${todayBookings.length}');
+          final now = DateTime.now();
+          
+          debugPrint('═══════════════════════════════════════');
+          debugPrint('🔍 AVAILABILITY CHECK - ${_getCurrentTimeString()}');
+          debugPrint('═══════════════════════════════════════');
+          debugPrint('📅 Today Date: ${now.year}-${now.month}-${now.day}');
+          debugPrint('🕐 Current Time: ${now.hour}:${now.minute.toString().padLeft(2, '0')}');
+          debugPrint('📊 Today Bookings Count: ${todayBookings.length}');
           
           // Check if there's any ongoing booking
-          final now = DateTime.now();
           for (var booking in todayBookings) {
-            final bookingStart = DateTime(
-              booking.bookingDate.year,
-              booking.bookingDate.month,
-              booking.bookingDate.day,
-              int.parse(booking.checkInTime.split(':')[0]),
-              int.parse(booking.checkInTime.split(':')[1]),
-            );
-            final bookingEnd = DateTime(
-              booking.bookingDate.year,
-              booking.bookingDate.month,
-              booking.bookingDate.day,
-              int.parse(booking.checkOutTime.split(':')[0]),
-              int.parse(booking.checkOutTime.split(':')[1]),
-            );
+            debugPrint('───────────────────────────────────────');
+            debugPrint('📌 Booking ID: ${booking.id.substring(0, 8)}');
+            debugPrint('   Booking Date: ${booking.bookingDate}');
+            debugPrint('   Check-in Time: ${booking.checkInTime}');
+            debugPrint('   Check-out Time: ${booking.checkOutTime}');
             
-            debugPrint('   Booking: ${booking.checkInTime}-${booking.checkOutTime} | Start: $bookingStart | End: $bookingEnd');
-            
-            // If current time is between booking start and end, room is occupied
-            if (now.isAfter(bookingStart) && now.isBefore(bookingEnd)) {
-              debugPrint('   ⚠️ Booking is ONGOING - Room OCCUPIED');
-              isAvailable = false;
-              break;
+            try {
+              final timeParts = booking.checkInTime.split(':');
+              final endTimeParts = booking.checkOutTime.split(':');
+              
+              final bookingStart = DateTime(
+                booking.bookingDate.year,
+                booking.bookingDate.month,
+                booking.bookingDate.day,
+                int.parse(timeParts[0]),
+                int.parse(timeParts[1]),
+              );
+              final bookingEnd = DateTime(
+                booking.bookingDate.year,
+                booking.bookingDate.month,
+                booking.bookingDate.day,
+                int.parse(endTimeParts[0]),
+                int.parse(endTimeParts[1]),
+              );
+              
+              debugPrint('   Parsed Start: $bookingStart');
+              debugPrint('   Parsed End: $bookingEnd');
+              debugPrint('   Now: $now');
+              
+              // Check all conditions
+              bool isAfterStart = now.isAfter(bookingStart);
+              bool isBeforeEnd = now.isBefore(bookingEnd);
+              bool isOngoing = isAfterStart && isBeforeEnd;
+              
+              debugPrint('   Is After Start: $isAfterStart');
+              debugPrint('   Is Before End: $isBeforeEnd');
+              debugPrint('   Is Ongoing: $isOngoing');
+              
+              if (isOngoing) {
+                debugPrint('   ✅ → OCCUPIED');
+                isAvailable = false;
+              } else {
+                debugPrint('   ❌ → Not ongoing');
+              }
+            } catch (e) {
+              debugPrint('   ❌ Error parsing: $e');
             }
           }
           
-          if (isAvailable) {
-            debugPrint('   ✅ No ongoing bookings - Room AVAILABLE');
+          if (isAvailable && todayBookings.isNotEmpty) {
+            debugPrint('───────────────────────────────────────');
+            debugPrint('📊 All bookings checked - No ongoing');
+          } else if (isAvailable && todayBookings.isEmpty) {
+            debugPrint('───────────────────────────────────────');
+            debugPrint('✨ No bookings today');
           }
+          
+          debugPrint('═══════════════════════════════════════');
+          debugPrint('🎯 FINAL STATUS: ${isAvailable ? 'AVAILABLE ✅' : 'OCCUPIED ❌'}');
+          debugPrint('═══════════════════════════════════════');
         }
         
         return Container(
