@@ -292,9 +292,6 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
   @override
   Widget build(BuildContext context) {
     final endTime = _calculateEndTime();
-    final displayDuration = _customDurationController.text.isNotEmpty
-        ? int.tryParse(_customDurationController.text) ?? _durationMinutes
-        : _durationMinutes;
 
     return Scaffold(
       body: Stack(
@@ -518,72 +515,150 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Time Display Row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () async {
-                              final time = await showTimePicker(
-                                context: context,
-                                initialTime: _startTime,
-                              );
-                              if (time != null) {
-                                setState(() => _startTime = time);
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              decoration: ShapeDecoration(
-                                shape: RoundedRectangleBorder(
-                                  side: const BorderSide(width: 1.5, color: Color(0xFFBBBBBB)),
-                                  borderRadius: BorderRadius.circular(11),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.access_time, color: Colors.white, size: 24),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${_timeToString(_startTime)} - ${_timeToString(endTime)}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontFamily: 'Plus Jakarta Sans',
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                    // Start Time Picker
+                    GestureDetector(
+                      onTap: () async {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: _startTime,
+                        );
+                        if (time != null) {
+                          setState(() => _startTime = time);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: ShapeDecoration(
+                          shape: RoundedRectangleBorder(
+                            side: const BorderSide(width: 1.5, color: Color(0xFFBBBBBB)),
+                            borderRadius: BorderRadius.circular(11),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          decoration: ShapeDecoration(
-                            shape: RoundedRectangleBorder(
-                              side: const BorderSide(width: 1.5, color: Color(0xFFBBBBBB)),
-                              borderRadius: BorderRadius.circular(11),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.access_time, color: Colors.white, size: 24),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _timeToString(_startTime),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.timer_outlined, color: Colors.white, size: 24),
-                              const SizedBox(width: 8),
-                              Text(
-                                '$displayDuration minutes',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
+                            const Icon(Icons.expand_more, color: Colors.white, size: 24),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Duration Selection Label
+                    const Text(
+                      'Duration',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Duration Options Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildDurationButton(30),
+                        _buildDurationButton(90),
+                        _buildDurationButton(120),
+                        _buildCustomDurationButton(),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Custom Duration Input (if custom is selected)
+                    if (_durationMinutes == 0)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: 50,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: ShapeDecoration(
+                              shape: RoundedRectangleBorder(
+                                side: const BorderSide(width: 1.5, color: Color(0xFFBBBBBB)),
+                                borderRadius: BorderRadius.circular(11),
+                              ),
+                            ),
+                            child: TextField(
+                              controller: _customDurationController,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontFamily: 'Plus Jakarta Sans',
+                                fontWeight: FontWeight.w600,
+                              ),
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                hintText: 'Enter duration in minutes',
+                                hintStyle: TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 14,
                                   fontFamily: 'Plus Jakarta Sans',
                                   fontWeight: FontWeight.w600,
                                 ),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
                               ),
-                            ],
+                              onChanged: (value) {
+                                setState(() {});
+                              },
+                            ),
                           ),
+                          const SizedBox(height: 12),
+                        ],
+                      ),
+
+                    // End Time Display
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: ShapeDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        shape: RoundedRectangleBorder(
+                          side: const BorderSide(width: 1.5, color: Color(0xFFBBBBBB)),
+                          borderRadius: BorderRadius.circular(11),
                         ),
-                      ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'End Time',
+                            style: TextStyle(
+                              color: Colors.white60,
+                              fontSize: 14,
+                              fontFamily: 'Plus Jakarta Sans',
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '${_timeToString(_startTime)} - ${_timeToString(endTime)}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontFamily: 'Plus Jakarta Sans',
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 24),
 
@@ -885,6 +960,76 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
             );
           }),
         ],
+      ),
+    );
+  }
+
+  // Helper method to build duration button
+  Widget _buildDurationButton(int minutes) {
+    final isSelected = _durationMinutes == minutes;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _durationMinutes = minutes;
+          _customDurationController.clear();
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: ShapeDecoration(
+          color: isSelected ? const Color(0xFFEC0303) : Colors.transparent,
+          shape: RoundedRectangleBorder(
+            side: BorderSide(
+              width: 1.5,
+              color: isSelected ? const Color(0xFFEC0303) : const Color(0xFFBBBBBB),
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: Text(
+          '$minutes\'',
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.white70,
+            fontSize: 14,
+            fontFamily: 'Plus Jakarta Sans',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper method to build custom duration button
+  Widget _buildCustomDurationButton() {
+    final isSelected = _durationMinutes == 0;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _durationMinutes = 0;
+          _customDurationController.clear();
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: ShapeDecoration(
+          color: isSelected ? const Color(0xFFEC0303) : Colors.transparent,
+          shape: RoundedRectangleBorder(
+            side: BorderSide(
+              width: 1.5,
+              color: isSelected ? const Color(0xFFEC0303) : const Color(0xFFBBBBBB),
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: Text(
+          'Custom',
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.white70,
+            fontSize: 14,
+            fontFamily: 'Plus Jakarta Sans',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
