@@ -582,7 +582,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
               ),
               SizedBox(width: screenWidth * 0.006),
               Text(
-                isAvailable ? 'Available' : 'Unavailable',
+                isAvailable ? 'Available' : 'Occupied',
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: screenWidth * 0.015,
