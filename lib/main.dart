@@ -16,7 +16,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
+e 
   // Note: Sample data initialization disabled due to Firestore security rules
   // Data can be added via admin panel or Firestore console
   

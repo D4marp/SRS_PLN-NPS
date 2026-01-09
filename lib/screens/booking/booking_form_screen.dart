@@ -616,6 +616,59 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Start Time Section
+                                Text(
+                                  'Start Time',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    fontFamily: 'Plus Jakarta Sans',
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                GestureDetector(
+                                  onTap: () async {
+                                    final selectedTime = await showTimePicker(
+                                      context: context,
+                                      initialTime: _startTime,
+                                    );
+                                    if (selectedTime != null) {
+                                      setState(() => _startTime = selectedTime);
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.md,
+                                      vertical: AppSpacing.sm,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.05),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.3),
+                                        width: 1.5,
+                                      ),
+                                      borderRadius: BorderRadius.circular(11),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          _timeToString(_startTime),
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                            fontFamily: 'Plus Jakarta Sans',
+                                          ),
+                                        ),
+                                        const Icon(Icons.access_time, color: Colors.white),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.lg),
+
                                 // Duration Section
                                 Text(
                                   'Duration',
