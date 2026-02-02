@@ -12,10 +12,15 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // Initialize Firebase with error handling for duplicate initialization
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    // Firebase app already initialized, ignore the error
+    debugPrint('Firebase already initialized: $e');
+  }
 
   // Note: Sample data initialization disabled due to Firestore security rules
   // Data can be added via admin panel or Firestore console
