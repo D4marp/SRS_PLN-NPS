@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "63967228916",
+    "project_id": "booking-room-system1",
+    "storage_bucket": "booking-room-system1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:63967228916:android:d2300a739f490b1f8dbfa1",
+        "android_client_info": {
+          "package_name": "com.example.bookify_rooms"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "63967228916-b8maurqeir0acfq9d0krfbjejuihd52k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC71j1Au-Zw62XoPgvN66oWICPYIIyvc7c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "63967228916-b8maurqeir0acfq9d0krfbjejuihd52k.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "63967228916-1inval967tvgsabsasg6f8o49moo0q8m.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "no"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
