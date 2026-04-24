@@ -87,22 +87,15 @@ class _SignUpScreenState extends State<SignUpScreen>
       email: _emailController.text.trim(),
       password: _passwordController.text,
       name: _nameController.text.trim(),
+      phone: '',
+      company: '',
+      city: '',
     );
 
     if (success && mounted) {
-      // Set the user role after signup
-      try {
-        await authProvider.setUserRole(_selectedRole);
-      } catch (e) {
-        print('Error setting role: $e');
-      }
-
-      // Navigate to home after role is set
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      }
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

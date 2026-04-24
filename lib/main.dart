@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 
 import 'utils/app_theme.dart';
@@ -8,24 +7,10 @@ import 'providers/auth_provider.dart';
 import 'providers/room_provider.dart';
 import 'providers/booking_provider.dart';
 import 'providers/admin_provider.dart';
-import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase with error handling for duplicate initialization
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (e) {
-    // Firebase app already initialized, ignore the error
-    debugPrint('Firebase already initialized: $e');
-  }
-
-  // Note: Sample data initialization disabled due to Firestore security rules
-  // Data can be added via admin panel or Firestore console
-  
   runApp(const BookifyRoomsApp());
 }
 

@@ -177,8 +177,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 builder: (context, authProvider, child) {
                                   final userName =
                                       authProvider.userModel?.name ??
-                                          authProvider.user?.displayName ??
-                                          authProvider.user?.email
+                                          authProvider.userModel?.email
                                               ?.split('@')
                                               .first ??
                                           'User';

@@ -141,7 +141,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
         // Check if user has Bookings role - ONLY Bookings role allowed
-        if (authProvider.user == null || authProvider.userModel?.role != UserRole.booking) {
+        if (authProvider.userModel == null || authProvider.userModel?.role != UserRole.booking) {
           return Scaffold(
             body: Container(
               color: Colors.white,

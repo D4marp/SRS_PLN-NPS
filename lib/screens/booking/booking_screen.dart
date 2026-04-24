@@ -66,7 +66,7 @@ class _BookingScreenState extends State<BookingScreen> {
     final bookingProvider = context.read<BookingProvider>();
 
     try {
-      final userId = authProvider.user!.uid;
+      final userId = authProvider.userId!.uid;
       final roomId = widget.room.id;
       
       // Format times as "HH:mm"

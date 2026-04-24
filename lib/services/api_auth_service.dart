@@ -1,8 +1,7 @@
 import 'package:dio/dio.dart';
 import '../utils/api_config.dart';
 
-/// Minimal HTTP client for Go backend auth endpoints.
-/// Used alongside Firebase Auth to obtain a Go JWT for protected API calls.
+/// Pure Go backend auth client (no Firebase)
 class ApiAuthService {
   static Dio _dio() {
     return Dio(BaseOptions(
@@ -12,8 +11,7 @@ class ApiAuthService {
     ));
   }
 
-  /// Login to Go backend and return the JWT token.
-  /// Returns `null` if the request fails (e.g. user not yet in Go DB).
+  /// Login to Go backend and return JWT token
   static Future<String?> login(String email, String password) async {
     try {
       final resp = await _dio().post('/api/auth/login', data: {
@@ -21,22 +19,33 @@ class ApiAuthService {
         'password': password,
       });
       return resp.data['data']?['token'] as String?;
-    } catch (_) {
+    } catch (e) {
+      print('Login error: $e');
       return null;
     }
   }
 
-  /// Register in Go backend and return the JWT token.
-  /// Returns `null` if the request fails (e.g. email already taken in Go DB).
-  static Future<String?> register(String email, String password, String name) async {
+  /// Register in Go backend and return JWT token
+  static Future<String?> register(
+    String email,
+    String password,
+    String name, {
+    String? phone,
+    String? company,
+    String? city,
+  }) async {
     try {
       final resp = await _dio().post('/api/auth/register', data: {
         'email': email,
         'password': password,
         'name': name,
+        'phone': phone ?? '',
+        'company': company ?? '',
+        'city': city ?? '',
       });
       return resp.data['data']?['token'] as String?;
-    } catch (_) {
+    } catch (e) {
+      print('Register error: $e');
       return null;
     }
   }

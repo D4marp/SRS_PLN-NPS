@@ -139,7 +139,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
       final authProvider = context.read<AuthProvider>();
       final bookingProvider = context.read<BookingProvider>();
 
-      if (authProvider.user == null) {
+      if (authProvider.userModel == null) {
         throw 'User not authenticated. Please login again.';
       }
 
@@ -152,7 +152,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
       debugPrint('   Guests: $_guestCount');
 
       final bookingId = await bookingProvider.createBooking(
-        userId: authProvider.user!.uid,
+        userId: authProvider.userId!,
         roomId: widget.room.id,
         bookingDate: _selectedDate,
         checkInTime: _timeToString(_startTime),
@@ -537,7 +537,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
 
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
-        if (authProvider.user == null || authProvider.userModel?.role != UserRole.booking) {
+        if (authProvider.userModel == null || authProvider.userModel?.role != UserRole.booking) {
           return Scaffold(
             backgroundColor: Colors.white,
             body: Center(

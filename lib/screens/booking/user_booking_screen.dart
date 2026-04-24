@@ -108,7 +108,7 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
       final authProvider = context.read<AuthProvider>();
       final bookingProvider = context.read<BookingProvider>();
 
-      if (authProvider.user == null) {
+      if (authProvider.userModel == null) {
         throw 'User not authenticated. Please login again.';
       }
 
@@ -121,7 +121,7 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
       debugPrint('   Guests: $_guestCount');
 
       final bookingId = await bookingProvider.createBooking(
-        userId: authProvider.user!.uid,
+        userId: authProvider.userId!,
         roomId: widget.room.id,
         bookingDate: _selectedDate,
         checkInTime: _timeToString(_startTime),

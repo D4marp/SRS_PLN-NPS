@@ -35,14 +35,14 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
     final bookingProvider =
         Provider.of<BookingProvider>(context, listen: false);
 
-    if (authProvider.user != null) {
-      debugPrint('🔥 Loading user bookings with real-time stream for user: ${authProvider.user!.uid}');
+    if (authProvider.userModel != null) {
+      debugPrint('🔥 Loading user bookings with real-time stream for user: ${authProvider.userId!}');
       debugPrint('📊 Current state before loading:');
       debugPrint('   - isLoading: ${bookingProvider.isLoading}');
       debugPrint('   - userBookings: ${bookingProvider.userBookings.length}');
       debugPrint('   - errorMessage: ${bookingProvider.errorMessage}');
       
-      bookingProvider.loadUserBookings(authProvider.user!.uid);
+      bookingProvider.loadUserBookings(authProvider.userId!);
     } else {
       debugPrint('❌ Cannot load bookings: user is null');
     }
@@ -292,8 +292,8 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
         onRefresh: () async {
           final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-          if (authProvider.user != null) {
-            await bookingProvider.refreshBookings(authProvider.user!.uid);
+          if (authProvider.userModel != null) {
+            await bookingProvider.refreshBookings(authProvider.userId!);
           }
         },
         child: ListView(
@@ -336,8 +336,8 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
       onRefresh: () async {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-        if (authProvider.user != null) {
-          await bookingProvider.refreshBookings(authProvider.user!.uid);
+        if (authProvider.userModel != null) {
+          await bookingProvider.refreshBookings(authProvider.userId!);
         }
       },
       child: bookingProvider.isLoading && bookings.isNotEmpty

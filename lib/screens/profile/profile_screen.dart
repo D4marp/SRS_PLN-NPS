@@ -33,7 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
-        if (authProvider.user == null) {
+        if (authProvider.userModel == null) {
           return const Center(
             child: CircularProgressIndicator(),
           );
@@ -43,7 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance
               .collection('users')
-              .doc(authProvider.user!.uid)
+              .doc(authProvider.userId!)
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -157,10 +157,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildProfileHeader(UserModel? user, AuthProvider authProvider) {
     final displayName = user?.name ?? 
-                       authProvider.user?.displayName ?? 
-                       authProvider.user?.email?.split('@').first ?? 
+                       authProvider.userModel?.name ?? 
+                       authProvider.userModel?.email?.split('@').first ?? 
                        'User';
-    final displayEmail = user?.email ?? authProvider.user?.email ?? 'user@email.com';
+    final displayEmail = user?.email ?? authProvider.userModel?.email ?? 'user@email.com';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
