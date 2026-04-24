@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import '../../models/room_model.dart';
 import '../../providers/room_provider.dart';
+import '../../services/api_room_service.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -28,6 +28,7 @@ class _AddEditRoomScreenState extends State<AddEditRoomScreen> {
   late TextEditingController _capacityController;
   late TextEditingController _floorController;
   late TextEditingController _buildingController;
+  late TextEditingController _contactNumberController;
   
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
@@ -60,6 +61,7 @@ class _AddEditRoomScreenState extends State<AddEditRoomScreen> {
         TextEditingController(text: widget.room?.maxGuests.toString() ?? '');
     _floorController = TextEditingController(text: widget.room?.floor ?? '');
     _buildingController = TextEditingController(text: widget.room?.building ?? '');
+    _contactNumberController = TextEditingController(text: widget.room?.contactNumber ?? '');
     
     if (widget.room != null) {
       _selectedClass = widget.room!.roomClass;
@@ -76,6 +78,7 @@ class _AddEditRoomScreenState extends State<AddEditRoomScreen> {
     _capacityController.dispose();
     _floorController.dispose();
     _buildingController.dispose();
+    _contactNumberController.dispose();
     super.dispose();
   }
 
@@ -187,22 +190,6 @@ class _AddEditRoomScreenState extends State<AddEditRoomScreen> {
         ),
       ),
     );
-  }
-
-  Future<String> _uploadImage(File imageFile) async {
-    try {
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('room_images')
-          .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
-      
-      final uploadTask = await storageRef.putFile(imageFile);
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
-      
-      return downloadUrl;
-    } catch (e) {
-      throw Exception('Failed to upload image: $e');
-    }
   }
 
   @override
@@ -367,7 +354,7 @@ class _AddEditRoomScreenState extends State<AddEditRoomScreen> {
             
             CustomTextField(
               controller: _addressController,
-              labelText: 'Address',
+              labelText: 'Address / Location',
               hintText: 'Full address',
               maxLines: 2,
               validator: (value) {
@@ -378,7 +365,21 @@ class _AddEditRoomScreenState extends State<AddEditRoomScreen> {
               },
             ),
             const SizedBox(height: 16),
-            
+
+            CustomTextField(
+              controller: _contactNumberController,
+              labelText: 'Contact Number',
+              hintText: 'e.g., 021-1234567',
+              keyboardType: TextInputType.phone,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter contact number';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
             Container(
               decoration: BoxDecoration(
                 color: const Color(0xBF170F0F),
@@ -461,49 +462,43 @@ class _AddEditRoomScreenState extends State<AddEditRoomScreen> {
       return;
     }
 
-    // Check if image is provided for new room
-    if (widget.room == null && _selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select an image for the room')),
-      );
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
 
     try {
       final roomProvider = Provider.of<RoomProvider>(context, listen: false);
-      
-      String imageUrl;
-      if (_selectedImage != null) {
-        // Upload new image
-        imageUrl = await _uploadImage(_selectedImage!);
-      } else {
-        // Keep existing image
-        imageUrl = widget.room!.imageUrls.first;
-      }
-      
+
       final roomData = {
-        'name': _nameController.text,
-        'description': _descriptionController.text,
+        'name': _nameController.text.trim(),
+        'description': _descriptionController.text.trim(),
         'roomClass': _selectedClass,
-        'capacity': int.parse(_capacityController.text),
-        'city': _cityController.text,
-        'address': _addressController.text,
-        'imageUrl': imageUrl,
+        'maxGuests': int.parse(_capacityController.text.trim()),
+        'city': _cityController.text.trim(),
+        'location': _addressController.text.trim(),
+        'contactNumber': _contactNumberController.text.trim(),
         'isAvailable': _isAvailable,
-        'floor': _floorController.text.isEmpty ? null : _floorController.text,
-        'building': _buildingController.text.isEmpty ? null : _buildingController.text,
+        'floor': _floorController.text.trim().isEmpty
+            ? null
+            : _floorController.text.trim(),
+        'building': _buildingController.text.trim().isEmpty
+            ? null
+            : _buildingController.text.trim(),
       };
 
       if (widget.room == null) {
-        // Add new room
-        await roomProvider.addRoom(roomData);
+        // Create room first, then upload image if selected
+        final newRoom = await roomProvider.addRoom(roomData);
+        if (_selectedImage != null) {
+          await ApiRoomService.uploadImage(newRoom.id, _selectedImage!);
+        }
       } else {
-        // Update existing room
+        // Update room data
         await roomProvider.updateRoom(widget.room!.id, roomData);
+        // Upload new image if one was selected
+        if (_selectedImage != null) {
+          await ApiRoomService.uploadImage(widget.room!.id, _selectedImage!);
+        }
       }
 
       if (mounted) {
