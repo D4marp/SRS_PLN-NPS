@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/room_model.dart';
-import '../services/room_service.dart';
+import '../services/api_room_service.dart';
+import '../services/websocket_service.dart';
 
 class RoomProvider extends ChangeNotifier {
   List<RoomModel> _rooms = [];
@@ -34,50 +35,47 @@ class RoomProvider extends ChangeNotifier {
 
   // Load initial data
   Future<void> _loadInitialData() async {
-    await Future.wait([
-      loadRooms(),
-      loadCities(),
-    ]);
+    await loadRooms();
   }
 
-  /// Load all rooms with realtime updates from Firebase
-  /// Subscribe to stream untuk mendapatkan update otomatis
+  /// Load all rooms with real-time updates via WebSocket
   Future<void> loadRooms() async {
     try {
       _setLoading(true);
       _clearError();
 
-      // Cancel previous subscription jika ada
+      // Cancel previous subscription if any
       _roomsSubscription?.cancel();
 
-      // Get initial data
-      final roomsStream = RoomService.getAllRooms();
-      
-      // Wait for first event dengan timeout
-      _rooms = await roomsStream.first.timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => [],
-      );
-      
-      _applyFilters();
-      _setLoading(false);
-      notifyListeners();
-      
-      debugPrint('✅ Initial rooms loaded: ${_rooms.length} rooms');
-      
-      // Continue listening untuk realtime updates
-      _roomsSubscription = roomsStream.listen(
+      bool firstEvent = true;
+
+      // Subscribe to WebSocket stream for real-time updates
+      _roomsSubscription = WebSocketService.watchRooms().listen(
         (rooms) {
-          debugPrint('🔄 Rooms updated realtime: ${rooms.length} rooms');
+          debugPrint('🔄 Rooms updated via WebSocket: ${rooms.length} rooms');
           _rooms = rooms;
           _applyFilters();
+          if (firstEvent) {
+            firstEvent = false;
+            _isLoading = false;
+          }
           notifyListeners();
         },
         onError: (error) {
-          debugPrint('❌ Error in rooms stream: $error');
+          debugPrint('❌ Error in rooms WebSocket: $error');
           _setError('Error updating rooms: $error');
+          _isLoading = false;
+          notifyListeners();
         },
       );
+
+      // Safety timeout: clear loading even if first message is delayed
+      Future.delayed(const Duration(seconds: 10), () {
+        if (_isLoading) {
+          _isLoading = false;
+          notifyListeners();
+        }
+      });
     } catch (e) {
       debugPrint('❌ Error loading rooms: $e');
       _setError(e.toString());
@@ -87,36 +85,16 @@ class RoomProvider extends ChangeNotifier {
     }
   }
 
-  // Load cities
+  // Derive unique cities from the loaded room list
   Future<void> loadCities() async {
-    try {
-      _cities = await RoomService.getPopularCities();
-      notifyListeners();
-    } catch (e) {
-      _setError(e.toString());
-    }
+    _cities = _rooms.map((r) => r.city).toSet().toList()..sort();
+    notifyListeners();
   }
 
-  // Search rooms
+  // Search rooms using local filter (data comes from WebSocket)
   Future<void> searchRooms(String query) async {
     _searchQuery = query;
-
-    if (query.isEmpty) {
-      _applyFilters();
-      return;
-    }
-
-    try {
-      _setLoading(true);
-      _clearError();
-
-      final searchResults = await RoomService.searchRooms(query);
-      _filteredRooms = searchResults;
-    } catch (e) {
-      _setError(e.toString());
-    } finally {
-      _setLoading(false);
-    }
+    _applyFilters();
   }
 
   // Filter rooms by city
@@ -135,6 +113,9 @@ class RoomProvider extends ChangeNotifier {
 
   // Apply all filters
   void _applyFilters() {
+    // Refresh city list from current rooms
+    _cities = _rooms.map((r) => r.city).toSet().toList()..sort();
+
     List<RoomModel> filtered = List.from(_rooms);
 
     // Apply city filter
@@ -174,21 +155,24 @@ class RoomProvider extends ChangeNotifier {
     _applyFilters();
   }
 
-  // Get room by ID
+  // Get room by ID — try cache first, fall back to API
   Future<RoomModel?> getRoomById(String roomId) async {
     try {
-      return await RoomService.getRoomById(roomId);
+      final cached = _rooms.where((r) => r.id == roomId).firstOrNull;
+      if (cached != null) return cached;
+      return await ApiRoomService.getRoom(roomId);
     } catch (e) {
       _setError(e.toString());
       return null;
     }
   }
 
-  // Check room availability
+  // Check room availability — uses the isAvailable flag from the API
   Future<bool> checkRoomAvailability(
       String roomId, DateTime bookingDate) async {
     try {
-      return await RoomService.isRoomAvailable(roomId, bookingDate);
+      final room = await ApiRoomService.getRoom(roomId);
+      return room.isAvailable;
     } catch (e) {
       _setError(e.toString());
       return false;
@@ -204,36 +188,41 @@ class RoomProvider extends ChangeNotifier {
       // Cancel previous subscription
       _roomsSubscription?.cancel();
 
-      final roomsStream = RoomService.getRoomsByCity(city);
-      
-      // Get first emission
-      final rooms = await roomsStream.first.timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => [],
-      );
+      final completer = Completer<List<RoomModel>>();
+      bool firstEvent = true;
 
-      debugPrint('✅ Rooms by city loaded: $city (${rooms.length} rooms)');
-
-      // Continue listening untuk realtime updates
-      _roomsSubscription = roomsStream.listen(
-        (updatedRooms) {
-          debugPrint('🔄 City rooms updated realtime: $city (${updatedRooms.length} rooms)');
-          _rooms = updatedRooms;
+      // Subscribe to city-filtered WebSocket stream
+      _roomsSubscription = WebSocketService.watchRooms(city: city).listen(
+        (rooms) {
+          debugPrint('🔄 City rooms updated via WebSocket: $city (${rooms.length} rooms)');
+          _rooms = rooms;
           _applyFilters();
+          if (firstEvent) {
+            firstEvent = false;
+            _isLoading = false;
+            if (!completer.isCompleted) completer.complete(rooms);
+          }
           notifyListeners();
         },
         onError: (error) {
-          debugPrint('❌ Error in city rooms stream: $error');
+          debugPrint('❌ Error in city rooms WebSocket: $error');
           _setError('Error loading rooms for $city: $error');
+          if (!completer.isCompleted) completer.complete([]);
         },
       );
 
-      return rooms;
+      // Return first emission or empty list on timeout
+      return await completer.future.timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          _isLoading = false;
+          return [];
+        },
+      );
     } catch (e) {
       _setError(e.toString());
-      return [];
-    } finally {
       _setLoading(false);
+      return [];
     }
   }
 
@@ -288,14 +277,25 @@ class RoomProvider extends ChangeNotifier {
     await loadRooms();
   }
 
-  // Admin: Add new room
-  Future<void> addRoom(Map<String, dynamic> roomData) async {
+  // Admin: Add new room — returns created RoomModel (screen uses id to upload image)
+  Future<RoomModel> addRoom(Map<String, dynamic> data) async {
     try {
       _setLoading(true);
       _clearError();
-      
-      await RoomService.addRoomFromMap(roomData);
-      await loadRooms(); // Refresh list
+      return await ApiRoomService.createRoom(
+        name: data['name'] as String,
+        description: data['description'] as String,
+        location: data['location'] as String,
+        city: data['city'] as String,
+        roomClass: data['roomClass'] as String,
+        maxGuests: data['maxGuests'] as int,
+        contactNumber: data['contactNumber'] as String,
+        amenities: List<String>.from(data['amenities'] ?? []),
+        hasAC: data['hasAC'] as bool? ?? false,
+        isAvailable: data['isAvailable'] as bool? ?? true,
+        floor: data['floor'] as String?,
+        building: data['building'] as String?,
+      );
     } catch (e) {
       _setError(e.toString());
       rethrow;
@@ -305,13 +305,27 @@ class RoomProvider extends ChangeNotifier {
   }
 
   // Admin: Update room
-  Future<void> updateRoom(String roomId, Map<String, dynamic> roomData) async {
+  Future<void> updateRoom(String roomId, Map<String, dynamic> data) async {
     try {
       _setLoading(true);
       _clearError();
-      
-      await RoomService.updateRoomFromMap(roomId, roomData);
-      await loadRooms(); // Refresh list
+      await ApiRoomService.updateRoom(
+        roomId,
+        name: data['name'] as String?,
+        description: data['description'] as String?,
+        location: data['location'] as String?,
+        city: data['city'] as String?,
+        roomClass: data['roomClass'] as String?,
+        maxGuests: data['maxGuests'] as int?,
+        contactNumber: data['contactNumber'] as String?,
+        amenities: data['amenities'] != null
+            ? List<String>.from(data['amenities'] as List)
+            : null,
+        hasAC: data['hasAC'] as bool?,
+        isAvailable: data['isAvailable'] as bool?,
+        floor: data['floor'] as String?,
+        building: data['building'] as String?,
+      );
     } catch (e) {
       _setError(e.toString());
       rethrow;
@@ -325,9 +339,7 @@ class RoomProvider extends ChangeNotifier {
     try {
       _setLoading(true);
       _clearError();
-      
-      await RoomService.deleteRoom(roomId);
-      await loadRooms(); // Refresh list
+      await ApiRoomService.deleteRoom(roomId);
     } catch (e) {
       _setError(e.toString());
       rethrow;
@@ -339,8 +351,7 @@ class RoomProvider extends ChangeNotifier {
   // Admin: Toggle room availability
   Future<void> toggleRoomAvailability(String roomId, bool isAvailable) async {
     try {
-      await RoomService.updateRoomFromMap(roomId, {'isAvailable': isAvailable});
-      await loadRooms(); // Refresh list
+      await ApiRoomService.updateRoom(roomId, isAvailable: isAvailable);
     } catch (e) {
       _setError(e.toString());
       rethrow;

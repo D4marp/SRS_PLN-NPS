@@ -68,7 +68,7 @@ class _BookingCalendarScreenState extends State<BookingCalendarScreen> {
 
   Color _getStatusColor(BookingStatus status) {
     return statusOptions
-        .firstWhere((e) => e.$1 == status)
+        .firstWhere((option) => option.$1 == status)
         .$2;
   }
 
@@ -128,14 +128,14 @@ class _BookingCalendarScreenState extends State<BookingCalendarScreen> {
           const SizedBox(width: 8),
           // Status filter buttons
           ...statusOptions.map(
-            (status, color, label) => _statusFilterChip(
-              label: label,
-              color: color,
-              isSelected: _selectedStatus == status,
+            (option) => _statusFilterChip(
+              label: option.$3,
+              color: option.$2,
+              isSelected: _selectedStatus == option.$1,
               onTap: () {
                 setState(
                   () => _selectedStatus =
-                      _selectedStatus == status ? null : status,
+                      _selectedStatus == option.$1 ? null : option.$1,
                 );
               },
             ),

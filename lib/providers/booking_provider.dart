@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/booking_model.dart';
-import '../services/booking_service.dart';
+import '../services/api_booking_service.dart';
+import '../services/websocket_service.dart';
 
 class BookingProvider extends ChangeNotifier {
   List<BookingModel> _userBookings = [];
@@ -28,30 +29,30 @@ class BookingProvider extends ChangeNotifier {
   DateTime? get selectedBookingDate => _selectedBookingDate;
   int get numberOfGuests => _numberOfGuests;
 
-  /// Load user bookings dengan realtime updates dari Firebase
-  /// Otomatis update ketika ada perubahan di Firestore
+  /// Load user bookings with real-time updates via WebSocket.
+  /// The server filters bookings by the user's JWT token.
   void loadUserBookings(String userId) {
     try {
       _clearError();
 
-      // Cancel previous subscription jika ada
+      // Cancel previous subscription if any
       _userBookingsSubscription?.cancel();
 
-      // Subscribe to stream untuk realtime updates
-      _userBookingsSubscription = BookingService.getUserBookings(userId).listen(
+      // Subscribe to WebSocket stream for real-time updates
+      _userBookingsSubscription = WebSocketService.watchBookings().listen(
         (bookings) {
-          debugPrint('✅ Bookings loaded realtime: ${bookings.length} bookings');
+          debugPrint('✅ Bookings loaded via WebSocket: ${bookings.length} bookings');
           _userBookings = bookings;
           _separateBookings();
           notifyListeners();
         },
         onError: (error) {
-          debugPrint('❌ Error in bookings stream: $error');
+          debugPrint('❌ Error in bookings WebSocket: $error');
           _setError('Error loading bookings: $error');
         },
       );
     } catch (e) {
-      debugPrint('❌ Error setting up bookings listener: $e');
+      debugPrint('❌ Error setting up bookings WebSocket: $e');
       _setError(e.toString());
     }
   }
@@ -76,7 +77,7 @@ class BookingProvider extends ChangeNotifier {
 
   // Create a new booking
   Future<String?> createBooking({
-    required String userId,
+    required String userId, // kept for API compatibility; JWT carries identity
     required String roomId,
     required DateTime bookingDate,
     required String checkInTime,
@@ -88,8 +89,7 @@ class BookingProvider extends ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      final bookingId = await BookingService.createBooking(
-        userId: userId,
+      final booking = await ApiBookingService.createBooking(
         roomId: roomId,
         bookingDate: bookingDate,
         checkInTime: checkInTime,
@@ -98,7 +98,7 @@ class BookingProvider extends ChangeNotifier {
         purpose: purpose,
       );
 
-      return bookingId;
+      return booking.id;
     } catch (e) {
       _setError(e.toString());
       return null;
@@ -113,7 +113,7 @@ class BookingProvider extends ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      await BookingService.cancelBooking(bookingId);
+      await ApiBookingService.cancelBooking(bookingId);
       return true;
     } catch (e) {
       _setError(e.toString());
@@ -123,10 +123,12 @@ class BookingProvider extends ChangeNotifier {
     }
   }
 
-  // Get booking by ID
+  // Get booking by ID — try local cache first, then API
   Future<BookingModel?> getBookingById(String bookingId) async {
     try {
-      return await BookingService.getBookingById(bookingId);
+      final cached = _userBookings.where((b) => b.id == bookingId).firstOrNull;
+      if (cached != null) return cached;
+      return await ApiBookingService.getBookingById(bookingId);
     } catch (e) {
       _setError(e.toString());
       return null;
@@ -174,17 +176,16 @@ class BookingProvider extends ChangeNotifier {
   // Get bookings by room ID
   Future<List<BookingModel>> getBookingsByRoomId(String roomId) async {
     try {
-      return await BookingService.getBookingsByRoomId(roomId);
+      return await ApiBookingService.getRoomBookings(roomId);
     } catch (e) {
       debugPrint('Error fetching bookings for room $roomId: $e');
       return [];
     }
   }
 
-  // 🔥 REAL-TIME STREAM: Get bookings with automatic updates
+  // Get bookings for a room as a one-shot stream (schedule/availability display)
   Stream<List<BookingModel>> getBookingsByRoomIdStream(String roomId) {
-    debugPrint('🔥 Provider: Setting up real-time stream for room $roomId');
-    return BookingService.getBookingsByRoomIdStream(roomId);
+    return Stream.fromFuture(ApiBookingService.getRoomBookings(roomId));
   }
 
   // Refresh bookings

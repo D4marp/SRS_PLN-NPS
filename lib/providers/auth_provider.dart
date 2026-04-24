@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../services/api_auth_service.dart';
+import '../utils/api_config.dart';
 
 class AuthProvider extends ChangeNotifier {
   User? _user;
@@ -61,6 +63,10 @@ class AuthProvider extends ChangeNotifier {
         name: name,
       );
 
+      // Register in Go backend and store JWT for API calls
+      final token = await ApiAuthService.register(email, password, name);
+      ApiConfig.setToken(token);
+
       return true;
     } catch (e) {
       _setError(e.toString());
@@ -83,6 +89,10 @@ class AuthProvider extends ChangeNotifier {
         email: email,
         password: password,
       );
+
+      // Obtain Go backend JWT for protected API calls
+      final token = await ApiAuthService.login(email, password);
+      ApiConfig.setToken(token);
 
       return true;
     } catch (e) {
@@ -114,6 +124,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       _setLoading(true);
       await AuthService.signOut();
+      ApiConfig.setToken(null); // clear Go backend JWT
       _user = null;
       _userModel = null;
     } catch (e) {
@@ -209,8 +220,10 @@ class AuthProvider extends ChangeNotifier {
     try {
       final userDoc = await AuthService.getUserDocument(_user!.uid);
       if (userDoc != null) {
-        final role = roleString == 'admin' 
-            ? UserRole.admin 
+        final role = roleString == 'superadmin'
+            ? UserRole.superadmin
+            : roleString == 'admin'
+            ? UserRole.admin
             : roleString == 'booking'
             ? UserRole.booking
             : UserRole.user;

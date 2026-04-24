@@ -1,6 +1,7 @@
 enum BookingStatus {
   pending,
   confirmed,
+  rejected,
   cancelled,
   completed,
 }
@@ -18,11 +19,16 @@ class BookingModel {
   final DateTime? updatedAt;
   final String? purpose; // Purpose of booking (meeting, class, event, etc.)
 
+  // Approval fields
+  final String? rejectionReason;
+  final String? approvedBy; // userId of admin who approved/rejected
+  final DateTime? approvedAt;
+
   // Additional room details for display
   final String? roomName;
   final String? roomLocation;
   final String? roomImageUrl;
-  
+
   // User details for display
   final String? userName;
   final String? userEmail;
@@ -39,6 +45,9 @@ class BookingModel {
     required this.createdAt,
     this.updatedAt,
     this.purpose,
+    this.rejectionReason,
+    this.approvedBy,
+    this.approvedAt,
     this.roomName,
     this.roomLocation,
     this.roomImageUrl,
@@ -65,6 +74,11 @@ class BookingModel {
           ? DateTime.fromMillisecondsSinceEpoch(json['updatedAt'])
           : null,
       purpose: json['purpose'],
+      rejectionReason: json['rejectionReason'],
+      approvedBy: json['approvedBy'],
+      approvedAt: json['approvedAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(json['approvedAt'])
+          : null,
       roomName: json['roomName'],
       roomLocation: json['roomLocation'],
       roomImageUrl: json['roomImageUrl'],
@@ -86,6 +100,9 @@ class BookingModel {
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt?.millisecondsSinceEpoch,
       'purpose': purpose,
+      'rejectionReason': rejectionReason,
+      'approvedBy': approvedBy,
+      'approvedAt': approvedAt?.millisecondsSinceEpoch,
       'roomName': roomName,
       'roomLocation': roomLocation,
       'roomImageUrl': roomImageUrl,
@@ -106,6 +123,9 @@ class BookingModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? purpose,
+    String? rejectionReason,
+    String? approvedBy,
+    DateTime? approvedAt,
     String? roomName,
     String? roomLocation,
     String? roomImageUrl,
@@ -124,6 +144,9 @@ class BookingModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       purpose: purpose ?? this.purpose,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      approvedBy: approvedBy ?? this.approvedBy,
+      approvedAt: approvedAt ?? this.approvedAt,
       roomName: roomName ?? this.roomName,
       roomLocation: roomLocation ?? this.roomLocation,
       roomImageUrl: roomImageUrl ?? this.roomImageUrl,
@@ -139,6 +162,8 @@ class BookingModel {
         return 'Pending';
       case BookingStatus.confirmed:
         return 'Confirmed';
+      case BookingStatus.rejected:
+        return 'Rejected';
       case BookingStatus.cancelled:
         return 'Cancelled';
       case BookingStatus.completed:
@@ -162,4 +187,3 @@ class BookingModel {
     return '$checkInTime - $checkOutTime';
   }
 }
-

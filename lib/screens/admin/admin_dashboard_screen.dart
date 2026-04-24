@@ -232,14 +232,10 @@ class _AdminDashboardScreenState
               .map(
                 (stat) =>
                     _buildStatCard(
-                      label: stat
-                          .$1,
-                      value: stat
-                          .$2,
-                      icon: stat
-                          .$3,
-                      color: stat
-                          .$4,
+                      label: stat.label,
+                      value: stat.value,
+                      icon: stat.icon,
+                      color: stat.color,
                     ),
               )
               .toList(),
@@ -868,7 +864,7 @@ class _AdminDashboardScreenState
                         width: 4,
                       ),
                       Text(
-                        '${room.capacity} pax',
+                        '${room.maxGuests} pax',
                         style:
                             TextStyle(
                               color: AppColors

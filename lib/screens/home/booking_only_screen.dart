@@ -589,6 +589,8 @@ class _BookingOnlyScreenState extends State<BookingOnlyScreen>
         return Colors.orange;
       case BookingStatus.cancelled:
         return Colors.red;
+      case BookingStatus.rejected:
+        return Colors.red.shade800;
       case BookingStatus.completed:
         return Colors.blue;
     }

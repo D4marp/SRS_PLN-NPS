@@ -315,6 +315,8 @@ class BookingCard extends StatelessWidget {
         return const Color(0xFFEC0303); // Red
       case BookingStatus.cancelled:
         return const Color(0xFF939393); // Gray
+      case BookingStatus.rejected:
+        return const Color(0xFFB71C1C); // Dark red
       case BookingStatus.pending:
         return const Color(0xFFFF9800); // Orange
     }

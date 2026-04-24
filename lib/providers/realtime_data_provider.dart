@@ -2,16 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/room_model.dart';
 import '../models/booking_model.dart';
-import '../services/room_service.dart';
-import '../services/booking_service.dart';
+import '../services/websocket_service.dart';
+import '../services/api_room_service.dart';
 
-/// Real-time data provider yang mengelola stream data dari Firebase
-/// Dengan proper subscription management dan error handling
+/// Real-time data provider that manages streams from WebSocket (Go backend).
+/// Replaces Firebase Firestore streams.
 class RealtimeDataProvider extends ChangeNotifier {
-  // Streams
-  late Stream<List<RoomModel>> _allRoomsStream;
-  late Stream<List<BookingModel>> _userBookingsStream;
-
   // Stream subscriptions
   StreamSubscription<List<RoomModel>>? _allRoomsSubscription;
   StreamSubscription<List<BookingModel>>? _userBookingsSubscription;
@@ -40,23 +36,23 @@ class RealtimeDataProvider extends ChangeNotifier {
     _initializeStreams();
   }
 
-  /// Inisialisasi semua streams
   void _initializeStreams() {
-    _allRoomsStream = RoomService.getAllRooms();
     _setupRoomsRealtime();
   }
 
-  /// Setup realtime listener untuk rooms
-  void _setupRoomsRealtime() {
+  /// Setup realtime listener untuk rooms via WebSocket
+  void _setupRoomsRealtime({String? city}) {
     _setRoomsLoading(true);
     _clearError();
 
-    _allRoomsSubscription = _allRoomsStream.listen(
+    _allRoomsSubscription?.cancel();
+    _allRoomsSubscription =
+        WebSocketService.watchRooms(city: city).listen(
       (rooms) {
         _rooms = rooms;
         _setRoomsLoading(false);
         notifyListeners();
-        debugPrint('✅ Rooms updated realtime: ${rooms.length} rooms');
+        debugPrint('✅ Rooms updated via WebSocket: ${rooms.length} rooms');
       },
       onError: (error) {
         debugPrint('❌ Error in rooms stream: $error');
@@ -66,23 +62,20 @@ class RealtimeDataProvider extends ChangeNotifier {
     );
   }
 
-  /// Setup realtime listener untuk user bookings
+  /// Setup realtime listener untuk user bookings via WebSocket
   void setupUserBookingsRealtime(String userId) {
     _setBookingsLoading(true);
     _clearError();
 
-    // Cancel previous subscription if exists
     _userBookingsSubscription?.cancel();
-
-    _userBookingsStream = BookingService.getUserBookings(userId);
-
-    _userBookingsSubscription = _userBookingsStream.listen(
+    _userBookingsSubscription =
+        WebSocketService.watchBookings().listen(
       (bookings) {
         _userBookings = bookings;
         _separateBookings();
         _setBookingsLoading(false);
         notifyListeners();
-        debugPrint('✅ Bookings updated realtime: ${bookings.length} bookings');
+        debugPrint('✅ Bookings updated via WebSocket: ${bookings.length} bookings');
       },
       onError: (error) {
         debugPrint('❌ Error in bookings stream: $error');
@@ -92,7 +85,6 @@ class RealtimeDataProvider extends ChangeNotifier {
     );
   }
 
-  /// Separate bookings into upcoming and past
   void _separateBookings() {
     final now = DateTime.now();
     _upcomingBookings = _userBookings
@@ -106,98 +98,59 @@ class RealtimeDataProvider extends ChangeNotifier {
         .where((booking) =>
             booking.bookingDate.isBefore(now) ||
             booking.status == BookingStatus.cancelled ||
-            booking.status == BookingStatus.completed)
+            booking.status == BookingStatus.completed ||
+            booking.status == BookingStatus.rejected)
         .toList();
   }
 
-  /// Get a specific room by ID
+  /// Get a specific room by ID — try local cache, fallback to API
   Future<RoomModel?> getRoomById(String roomId) async {
     try {
-      return await RoomService.getRoomById(roomId);
+      final cached = _rooms.where((r) => r.id == roomId).firstOrNull;
+      if (cached != null) return cached;
+      return await ApiRoomService.getRoom(roomId);
     } catch (e) {
       _setError('Error fetching room: $e');
       return null;
     }
   }
 
-  /// Search rooms with realtime updates
+  /// Search rooms — applies local filter on cached WebSocket data
   Future<void> searchRooms(String query) async {
-    try {
-      _setRoomsLoading(true);
-      _clearError();
-
-      final results = await RoomService.searchRooms(query);
-      // Note: searchRooms returns Future, not Stream
-      // For realtime search, consider implementing a stream-based search
-      debugPrint('🔍 Search results: ${results.length} rooms found');
-    } catch (e) {
-      _setError('Error searching rooms: $e');
-    } finally {
-      _setRoomsLoading(false);
-    }
+    // Rooms are already in _rooms from WebSocket; local search is handled
+    // by RoomProvider._applyFilters(). This method is a no-op here.
+    debugPrint('🔍 searchRooms called with: $query (handled by RoomProvider)');
   }
 
-  /// Get rooms by city with realtime updates
+  /// Get rooms by city with realtime updates via WebSocket
   void getRoomsByCityRealtime(String city) {
-    _setRoomsLoading(true);
-    _clearError();
-
-    // Cancel previous subscription and setup new one
-    _allRoomsSubscription?.cancel();
-    _allRoomsStream = RoomService.getRoomsByCity(city);
-
-    _allRoomsSubscription = _allRoomsStream.listen(
-      (rooms) {
-        _rooms = rooms;
-        _setRoomsLoading(false);
-        notifyListeners();
-        debugPrint('✅ City rooms updated realtime: $city (${rooms.length} rooms)');
-      },
-      onError: (error) {
-        debugPrint('❌ Error in city rooms stream: $error');
-        _setError('Error loading rooms for $city: $error');
-        _setRoomsLoading(false);
-      },
-    );
+    _setupRoomsRealtime(city: city);
   }
 
-  /// Reset to all rooms
+  /// Reset to all rooms (no city filter)
   void resetToAllRooms() {
-    _allRoomsSubscription?.cancel();
     _setupRoomsRealtime();
   }
 
-  /// Refresh all data manually
   Future<void> refreshAllData(String? userId) async {
     try {
-      _setRoomsLoading(true);
-      if (userId != null) {
-        _setBookingsLoading(true);
-      }
       _clearError();
-
-      // Reset rooms stream
       resetToAllRooms();
-
-      // Reset bookings if userId provided
       if (userId != null) {
         setupUserBookingsRealtime(userId);
       }
-
       debugPrint('🔄 All data refreshed');
     } catch (e) {
       _setError('Error refreshing data: $e');
     }
   }
 
-  /// Cancel all active subscriptions
   void cancelAllSubscriptions() {
     _allRoomsSubscription?.cancel();
     _userBookingsSubscription?.cancel();
     debugPrint('🛑 All subscriptions cancelled');
   }
 
-  // Private helper methods
   void _setRoomsLoading(bool loading) {
     _isLoadingRooms = loading;
   }
@@ -220,7 +173,6 @@ class RealtimeDataProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Utility getters
   int get roomCount => _rooms.length;
   int get bookingCount => _userBookings.length;
   bool get hasActiveBookings => _upcomingBookings.isNotEmpty;

@@ -7,7 +7,8 @@ import '../../utils/app_theme.dart';
 import '../../models/user_model.dart';
 import '../../core/gen/assets.gen.dart';
 import '../auth/login_screen.dart';
-import '../admin/admin_rooms_screen.dart';
+import '../../providers/admin_provider.dart';
+import '../admin/admin_panel_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,6 +18,17 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if (auth.userModel?.isAdmin == true) {
+        Provider.of<AdminProvider>(context, listen: false).loadStats();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
@@ -339,19 +351,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             // Admin Panel - Only visible for admin users
             if (authProvider.userModel?.isAdmin == true) ...[
-              _buildMenuCard(
-                icon: Icons.admin_panel_settings,
-                iconColor: const Color(0xFFFF5722),
-                title: 'Admin Panel',
-                subtitle: 'Manage rooms and bookings',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AdminRoomsScreen(),
-                    ),
-                  );
-                },
+              Consumer<AdminProvider>(
+                builder: (context, adminProvider, _) => _buildMenuCard(
+                  icon: Icons.admin_panel_settings,
+                  iconColor: const Color(0xFFFF5722),
+                  title: 'Admin Panel',
+                  subtitle: adminProvider.pendingCount > 0
+                      ? 'Manage rooms & bookings • ${adminProvider.pendingCount} pending'
+                      : 'Manage rooms and bookings',
+                  badge: adminProvider.pendingCount,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminPanelScreen(),
+                      ),
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 12),
             ],
@@ -409,6 +426,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    int badge = 0,
   }) {
     return Material(
       color: Colors.transparent,
@@ -485,11 +503,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
 
-              // Arrow Icon
-              const Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 16,
-                color: Color(0xFFBBBBBB),
+              // Arrow + optional badge
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (badge > 0) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEC0303),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        badge > 99 ? '99+' : '$badge',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                    color: Color(0xFFBBBBBB),
+                  ),
+                ],
               ),
             ],
           ),
