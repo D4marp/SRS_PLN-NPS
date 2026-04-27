@@ -18,6 +18,8 @@ class BookingService {
     required String checkInTime,
     required String checkOutTime,
     required int numberOfGuests,
+    String? bookedForName,
+    String? bookedForCompany,
     String? purpose,
   }) async {
     try {
@@ -75,6 +77,8 @@ class BookingService {
         numberOfGuests: numberOfGuests,
         status: BookingStatus.confirmed, // Directly confirmed without payment
         createdAt: DateTime.now(),
+        bookedForName: bookedForName,
+        bookedForCompany: bookedForCompany,
         purpose: purpose,
         roomName: room.name,
         roomLocation: room.location,

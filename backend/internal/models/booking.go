@@ -31,13 +31,15 @@ type Booking struct {
 	ApprovedBy      *string       `json:"approvedBy" db:"approved_by"`
 	ApprovedAt      *int64        `json:"approvedAt" db:"approved_at"`
 	// Denormalized fields (same as Firestore behavior)
-	RoomName     *string `json:"roomName" db:"room_name"`
-	RoomLocation *string `json:"roomLocation" db:"room_location"`
-	RoomImageURL *string `json:"roomImageUrl" db:"room_image_url"`
-	UserName     *string `json:"userName" db:"user_name"`
-	UserEmail    *string `json:"userEmail" db:"user_email"`
-	CreatedAt    int64   `json:"createdAt" db:"created_at"`
-	UpdatedAt    *int64  `json:"updatedAt" db:"updated_at"`
+	RoomName         *string `json:"roomName" db:"room_name"`
+	RoomLocation     *string `json:"roomLocation" db:"room_location"`
+	RoomImageURL     *string `json:"roomImageUrl" db:"room_image_url"`
+	BookedForName    *string `json:"bookedForName" db:"booked_for_name"`
+	BookedForCompany *string `json:"bookedForCompany" db:"booked_for_company"`
+	UserName         *string `json:"userName" db:"user_name"`
+	UserEmail        *string `json:"userEmail" db:"user_email"`
+	CreatedAt        int64   `json:"createdAt" db:"created_at"`
+	UpdatedAt        *int64  `json:"updatedAt" db:"updated_at"`
 }
 
 type CreateBookingRequest struct {
@@ -46,6 +48,8 @@ type CreateBookingRequest struct {
 	CheckInTime    string  `json:"checkInTime" binding:"required"`
 	CheckOutTime   string  `json:"checkOutTime" binding:"required"`
 	NumberOfGuests int     `json:"numberOfGuests" binding:"required,min=1"`
+	BookedForName  *string `json:"bookedForName"`
+	BookedForCompany *string `json:"bookedForCompany"`
 	Purpose        *string `json:"purpose"`
 }
 

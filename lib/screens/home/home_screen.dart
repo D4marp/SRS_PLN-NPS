@@ -119,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           return const RoomsListScreen();
         }
 
-        // Default UI for User and Admin roles
+        // Default UI for non-booking roles
         return Scaffold(
           body: IndexedStack(
             index: _selectedIndex,

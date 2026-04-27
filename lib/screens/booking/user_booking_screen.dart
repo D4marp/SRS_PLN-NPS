@@ -27,6 +27,8 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
   int _guestCount = 1;
   late TextEditingController _customDurationController;
   late TextEditingController _purposeController;
+  late TextEditingController _bookedForNameController;
+  late TextEditingController _bookedForCompanyController;
   bool _isBooking = false;
 
   @override
@@ -34,12 +36,16 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
     super.initState();
     _customDurationController = TextEditingController();
     _purposeController = TextEditingController();
+    _bookedForNameController = TextEditingController();
+    _bookedForCompanyController = TextEditingController();
   }
 
   @override
   void dispose() {
     _customDurationController.dispose();
     _purposeController.dispose();
+    _bookedForNameController.dispose();
+    _bookedForCompanyController.dispose();
     super.dispose();
   }
 
@@ -127,6 +133,12 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
         checkInTime: _timeToString(_startTime),
         checkOutTime: _timeToString(endTime),
         numberOfGuests: _guestCount,
+        bookedForName: _bookedForNameController.text.trim().isNotEmpty
+            ? _bookedForNameController.text.trim()
+            : null,
+        bookedForCompany: _bookedForCompanyController.text.trim().isNotEmpty
+            ? _bookedForCompanyController.text.trim()
+            : null,
         purpose: _purposeController.text.isNotEmpty ? _purposeController.text : null,
       );
 
@@ -661,6 +673,82 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
+
+              // Booking recipient (optional)
+              const Text(
+                'Booked For (optional)',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                height: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: ShapeDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  shape: RoundedRectangleBorder(
+                    side: const BorderSide(width: 1.5, color: Color(0xFFBBBBBB)),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                ),
+                child: TextField(
+                  controller: _bookedForNameController,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 16,
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: 'Recipient name',
+                    hintStyle: TextStyle(
+                      color: Colors.black45,
+                      fontSize: 16,
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontWeight: FontWeight.w600,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                height: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: ShapeDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  shape: RoundedRectangleBorder(
+                    side: const BorderSide(width: 1.5, color: Color(0xFFBBBBBB)),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                ),
+                child: TextField(
+                  controller: _bookedForCompanyController,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 16,
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: 'Company / organization',
+                    hintStyle: TextStyle(
+                      color: Colors.black45,
+                      fontSize: 16,
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontWeight: FontWeight.w600,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
 
               // Purpose (optional)
               const Text(

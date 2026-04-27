@@ -746,6 +746,8 @@ class _BookingFormWidgetState extends State<_BookingFormWidget> {
   int _guestCount = 1;
   late TextEditingController _customDurationController;
   late TextEditingController _purposeController;
+  late TextEditingController _bookedForNameController;
+  late TextEditingController _bookedForCompanyController;
   bool _isBooking = false;
 
   @override
@@ -753,12 +755,16 @@ class _BookingFormWidgetState extends State<_BookingFormWidget> {
     super.initState();
     _customDurationController = TextEditingController();
     _purposeController = TextEditingController();
+    _bookedForNameController = TextEditingController();
+    _bookedForCompanyController = TextEditingController();
   }
 
   @override
   void dispose() {
     _customDurationController.dispose();
     _purposeController.dispose();
+    _bookedForNameController.dispose();
+    _bookedForCompanyController.dispose();
     super.dispose();
   }
 
@@ -804,6 +810,12 @@ class _BookingFormWidgetState extends State<_BookingFormWidget> {
         checkInTime: _timeToString(_startTime),
         checkOutTime: _timeToString(endTime),
         numberOfGuests: _guestCount,
+        bookedForName: _bookedForNameController.text.trim().isNotEmpty
+            ? _bookedForNameController.text.trim()
+            : null,
+        bookedForCompany: _bookedForCompanyController.text.trim().isNotEmpty
+            ? _bookedForCompanyController.text.trim()
+            : null,
         purpose: _purposeController.text.isNotEmpty ? _purposeController.text : null,
       );
 
@@ -1139,6 +1151,43 @@ class _BookingFormWidgetState extends State<_BookingFormWidget> {
                         : null,
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Booking recipient (optional)
+            Text(
+              'Booked For (optional)',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _bookedForNameController,
+              decoration: InputDecoration(
+                hintText: 'Recipient name',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _bookedForCompanyController,
+              decoration: InputDecoration(
+                hintText: 'Company / organization',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
               ),
             ),
             const SizedBox(height: 20),

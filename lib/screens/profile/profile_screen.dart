@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
 import '../../models/user_model.dart';
 import '../../core/gen/assets.gen.dart';
 import '../auth/login_screen.dart';
-import '../../providers/admin_provider.dart';
-import '../admin/admin_panel_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,148 +16,111 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      if (auth.userModel?.isAdmin == true) {
-        Provider.of<AdminProvider>(context, listen: false).loadStats();
-      }
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
-        if (authProvider.userModel == null) {
+        final user = authProvider.userModel;
+
+        if (user == null) {
           return const Center(
             child: CircularProgressIndicator(),
           );
         }
 
-        // Real-time user data from Firestore
-        return StreamBuilder<DocumentSnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(authProvider.userId!)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            }
-
-            if (snapshot.hasError) {
-              return Center(
-                child: Text('Error: ${snapshot.error}'),
-              );
-            }
-
-            // Parse user data
-            UserModel? user;
-            if (snapshot.hasData && snapshot.data!.exists) {
-              user = UserModel.fromJson(
-                snapshot.data!.data() as Map<String, dynamic>,
-              );
-            }
-
-            return Stack(
-              children: [
-                // Full background image - same as Home
-                Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: Assets.images.homeBg.provider(),
-                      fit: BoxFit.cover,
-                    ),
+        return Stack(
+          children: [
+            // Full background image - same as Home
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: Assets.images.homeBg.provider(),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            // Content
+            Scaffold(
+              backgroundColor: Colors.transparent,
+                appBar: AppBar(
+                title: const Center(
+                  child: Text(
+                  'Profile',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontWeight: FontWeight.w700,
+                  ),
                   ),
                 ),
-                // Content
-                Scaffold(
-                  backgroundColor: Colors.transparent,
-                    appBar: AppBar(
-                    title: const Center(
-                      child: Text(
-                      'Profile',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontWeight: FontWeight.w700,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                centerTitle: false,
+                actions: [
+                  IconButton(
+                    onPressed: () => _showSignOutDialog(context, authProvider),
+                    icon: const Icon(
+                      Icons.logout_rounded,
+                      color: Color(0xFFEC0303),
+                      size: 24,
+                    ),
+                    tooltip: 'Sign Out',
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ),
+              body: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+
+                    // Profile Header - Compact Design
+                    _buildProfileHeader(user, authProvider),
+
+                    const SizedBox(height: 32),
+
+                    // Menu Options
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
                       ),
+                      child: Column(
+                        children: [
+                          _buildMenuSection(),
+                        ],
                       ),
                     ),
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    centerTitle: false,
-                    actions: [
-                      IconButton(
-                        onPressed: () => _showSignOutDialog(authProvider),
-                        icon: const Icon(
-                          Icons.logout_rounded,
-                          color: Color(0xFFEC0303),
-                          size: 24,
-                        ),
-                        tooltip: 'Sign Out',
+
+                    const SizedBox(height: 24),
+
+                    // Sign Out Button
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
                       ),
-                      const SizedBox(width: 8),
-                    ],
-                  ),
-                  body: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        
-                        // Profile Header - Compact Design
-                        _buildProfileHeader(user, authProvider),
-
-                        const SizedBox(height: 32),
-
-                        // Menu Options
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                          ),
-                          child: Column(
-                            children: [
-                              _buildMenuSection(),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Sign Out Button
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                          ),
-                          child: _buildSignOutButton(authProvider),
-                        ),
-
-                        const SizedBox(height: 40),
-                      ],
+                      child: Consumer<AuthProvider>(
+                        builder: (context, authProvider, _) {
+                          return _buildSignOutButton(context, authProvider);
+                        },
+                      ),
                     ),
-                  ),
+
+                    const SizedBox(height: 40),
+                  ],
                 ),
-              ],
-            );
-          },
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
   Widget _buildProfileHeader(UserModel? user, AuthProvider authProvider) {
-    final displayName = user?.name ?? 
-                       authProvider.userModel?.name ?? 
-                       authProvider.userModel?.email?.split('@').first ?? 
-                       'User';
-    final displayEmail = user?.email ?? authProvider.userModel?.email ?? 'user@email.com';
+    final displayName = user?.name ?? 'User';
+    final displayEmail = user?.email ?? 'user@email.com';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -331,92 +291,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildMenuSection() {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(bottom: 16, left: 4),
-              child: Text(
-                'Account Settings',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontFamily: 'Plus Jakarta Sans',
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: 16, left: 4),
+          child: Text(
+            'Account Settings',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontFamily: 'Plus Jakarta Sans',
+              fontWeight: FontWeight.w700,
             ),
+          ),
+        ),
 
-            // Admin Panel - Only visible for admin users
-            if (authProvider.userModel?.isAdmin == true) ...[
-              Consumer<AdminProvider>(
-                builder: (context, adminProvider, _) => _buildMenuCard(
-                  icon: Icons.admin_panel_settings,
-                  iconColor: const Color(0xFFFF5722),
-                  title: 'Admin Panel',
-                  subtitle: adminProvider.pendingCount > 0
-                      ? 'Manage rooms & bookings • ${adminProvider.pendingCount} pending'
-                      : 'Manage rooms and bookings',
-                  badge: adminProvider.pendingCount,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AdminPanelScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
+        // Help & Support
+        _buildMenuCard(
+          icon: Icons.help_outline,
+          iconColor: const Color(0xFFFF9800),
+          title: 'Help & Support',
+          subtitle: 'Get help or contact us',
+          onTap: () => _showHelpSupportModal(),
+        ),
 
-            // Help & Support
-            _buildMenuCard(
-              icon: Icons.help_outline,
-              iconColor: const Color(0xFFFF9800),
-              title: 'Help & Support',
-              subtitle: 'Get help or contact us',
-              onTap: () => _showHelpSupportModal(),
-            ),
+        const SizedBox(height: 12),
 
-            const SizedBox(height: 12),
+        // Privacy Policy
+        _buildMenuCard(
+          icon: Icons.lock_outline,
+          iconColor: const Color(0xFF9C27B0),
+          title: 'Privacy Policy',
+          subtitle: 'Read our privacy policy',
+          onTap: () => _showPrivacyPolicyModal(),
+        ),
 
-            // Privacy Policy
-            _buildMenuCard(
-              icon: Icons.lock_outline,
-              iconColor: const Color(0xFF9C27B0),
-              title: 'Privacy Policy',
-              subtitle: 'Read our privacy policy',
-              onTap: () => _showPrivacyPolicyModal(),
-            ),
+        const SizedBox(height: 12),
 
-            const SizedBox(height: 12),
+        // Terms of Service
+        _buildMenuCard(
+          icon: Icons.description_outlined,
+          iconColor: const Color(0xFF2196F3),
+          title: 'Terms of Service',
+          subtitle: 'Read our terms & conditions',
+          onTap: () => _showTermsOfServiceModal(),
+        ),
 
-            // Terms of Service
-            _buildMenuCard(
-              icon: Icons.description_outlined,
-              iconColor: const Color(0xFF2196F3),
-              title: 'Terms of Service',
-              subtitle: 'Read our terms & conditions',
-              onTap: () => _showTermsOfServiceModal(),
-            ),
+        const SizedBox(height: 12),
 
-            const SizedBox(height: 12),
-
-            // About App
-            _buildMenuCard(
-              icon: Icons.info_outline,
-              iconColor: const Color(0xFF4CAF50),
-              title: 'About Bookify',
-              subtitle: 'Version 1.0.0 • Build 001',
-              onTap: () => _showAboutAppModal(),
-            ),
-          ],
-        );
-      },
+        // About App
+        _buildMenuCard(
+          icon: Icons.info_outline,
+          iconColor: const Color(0xFF4CAF50),
+          title: 'About Bookify',
+          subtitle: 'Version 1.0.0 • Build 001',
+          onTap: () => _showAboutAppModal(),
+        ),
+      ],
     );
   }
 
@@ -540,11 +472,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSignOutButton(AuthProvider authProvider) {
+  Widget _buildSignOutButton(BuildContext context, AuthProvider authProvider) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () => _showSignOutDialog(authProvider),
+        onPressed: () => _showSignOutDialog(context, authProvider),
         icon: const Icon(Icons.logout_rounded, size: 20),
         label: const Text(
           'Sign Out',
@@ -572,7 +504,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showSignOutDialog(AuthProvider authProvider) {
+  void _showSignOutDialog(BuildContext context, AuthProvider authProvider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

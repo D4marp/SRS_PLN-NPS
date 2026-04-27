@@ -28,6 +28,8 @@ class BookingModel {
   final String? roomName;
   final String? roomLocation;
   final String? roomImageUrl;
+  final String? bookedForName;
+  final String? bookedForCompany;
 
   // User details for display
   final String? userName;
@@ -51,6 +53,8 @@ class BookingModel {
     this.roomName,
     this.roomLocation,
     this.roomImageUrl,
+    this.bookedForName,
+    this.bookedForCompany,
     this.userName,
     this.userEmail,
   });
@@ -82,6 +86,8 @@ class BookingModel {
       roomName: json['roomName'],
       roomLocation: json['roomLocation'],
       roomImageUrl: json['roomImageUrl'],
+      bookedForName: json['bookedForName'],
+      bookedForCompany: json['bookedForCompany'],
       userName: json['userName'],
       userEmail: json['userEmail'],
     );
@@ -106,6 +112,8 @@ class BookingModel {
       'roomName': roomName,
       'roomLocation': roomLocation,
       'roomImageUrl': roomImageUrl,
+      'bookedForName': bookedForName,
+      'bookedForCompany': bookedForCompany,
       'userName': userName,
       'userEmail': userEmail,
     };
@@ -129,6 +137,8 @@ class BookingModel {
     String? roomName,
     String? roomLocation,
     String? roomImageUrl,
+    String? bookedForName,
+    String? bookedForCompany,
     String? userName,
     String? userEmail,
   }) {
@@ -150,6 +160,8 @@ class BookingModel {
       roomName: roomName ?? this.roomName,
       roomLocation: roomLocation ?? this.roomLocation,
       roomImageUrl: roomImageUrl ?? this.roomImageUrl,
+      bookedForName: bookedForName ?? this.bookedForName,
+      bookedForCompany: bookedForCompany ?? this.bookedForCompany,
       userName: userName ?? this.userName,
       userEmail: userEmail ?? this.userEmail,
     );

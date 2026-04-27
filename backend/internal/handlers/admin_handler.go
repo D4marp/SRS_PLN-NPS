@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/bookify-rooms/backend/internal/models"
 	"github.com/bookify-rooms/backend/internal/realtime"
@@ -44,8 +45,8 @@ func (h *AdminHandler) GetStats(c *gin.Context) {
 	h.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM bookings WHERE status='completed'").Scan(&completedB)
 
 	utils.Success(c, http.StatusOK, gin.H{
-		"rooms":    gin.H{"total": totalRooms, "available": availableRooms},
-		"users":    gin.H{"total": totalUsers, "admins": adminCount, "booking": bookingCount},
+		"rooms": gin.H{"total": totalRooms, "available": availableRooms},
+		"users": gin.H{"total": totalUsers, "admins": adminCount, "booking": bookingCount},
 		"bookings": gin.H{"total": totalB, "pending": pendingB, "confirmed": confirmedB,
 			"rejected": rejectedB, "cancelled": cancelledB, "completed": completedB},
 	})
@@ -61,6 +62,7 @@ func (h *AdminHandler) GetAdminBookings(c *gin.Context) {
 	                 b.check_in_time, b.check_out_time, b.number_of_guests,
 	                 b.status, b.purpose, b.rejection_reason, b.approved_by, b.approved_at,
 	                 b.room_name, b.room_location, b.room_image_url,
+	                 b.booked_for_name, b.booked_for_company,
 	                 b.user_name, b.user_email, b.created_at, b.updated_at,
 	                 reviewer.name AS reviewer_name
 	          FROM bookings b
@@ -108,6 +110,7 @@ func (h *AdminHandler) GetAdminBookings(c *gin.Context) {
 			&b.CheckInTime, &b.CheckOutTime, &b.NumberOfGuests,
 			&b.Status, &b.Purpose, &b.RejectionReason, &b.ApprovedBy, &b.ApprovedAt,
 			&b.RoomName, &b.RoomLocation, &b.RoomImageURL,
+			&b.BookedForName, &b.BookedForCompany,
 			&b.UserName, &b.UserEmail, &b.CreatedAt, &b.UpdatedAt,
 			&reviewerName,
 		); err == nil {
@@ -153,6 +156,67 @@ func (h *AdminHandler) ListUsers(c *gin.Context) {
 		}
 	}
 	utils.Success(c, http.StatusOK, users)
+}
+
+func (h *AdminHandler) CreateUser(c *gin.Context) {
+	var req models.CreateManagedUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if !models.ValidRoles[req.Role] {
+		utils.Error(c, http.StatusBadRequest, "invalid role")
+		return
+	}
+	if req.Role == models.RoleSuperAdmin {
+		utils.Error(c, http.StatusForbidden, "superadmin role cannot be assigned via API")
+		return
+	}
+
+	var existingCount int
+	err := h.db.QueryRowContext(context.Background(),
+		"SELECT COUNT(*) FROM users WHERE email = ?", req.Email,
+	).Scan(&existingCount)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "database error")
+		return
+	}
+	if existingCount > 0 {
+		utils.Error(c, http.StatusConflict, "email already registered")
+		return
+	}
+
+	hashedPassword, err := utils.HashPassword(req.Password)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "failed to hash password")
+		return
+	}
+
+	now := time.Now().UnixMilli()
+	user := models.User{
+		ID:           uuid.New().String(),
+		Name:         req.Name,
+		Email:        req.Email,
+		Password:     hashedPassword,
+		ProfileImage: req.ProfileImage,
+		City:         req.City,
+		Role:         req.Role,
+		CreatedAt:    now,
+	}
+
+	_, err = h.db.ExecContext(context.Background(),
+		`INSERT INTO users (id, name, email, password, profile_image, city, role, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		user.ID, user.Name, user.Email, user.Password,
+		user.ProfileImage, user.City, user.Role, user.CreatedAt,
+	)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "failed to create user")
+		return
+	}
+
+	utils.SuccessMessage(c, http.StatusCreated, "user created", user.ToResponse())
 }
 
 func (h *AdminHandler) GetUser(c *gin.Context) {

@@ -15,6 +15,10 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const BookifyRoomsApp());
 
+    // SplashScreen uses a delayed navigation timer; advance time so it fires.
+    await tester.pump(const Duration(milliseconds: 2600));
+    await tester.pumpAndSettle();
+
     // Verify that the app loads correctly
     expect(find.byType(MaterialApp), findsOneWidget);
   });

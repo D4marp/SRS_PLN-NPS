@@ -85,6 +85,7 @@ func (s *Server) registerRoutes(r *gin.Engine) {
 
 		// Superadmin: user management
 		admin.GET("/users", superMw, adminH.ListUsers)
+		admin.POST("/users", superMw, adminH.CreateUser)
 		admin.GET("/users/:id", superMw, adminH.GetUser)
 		admin.PATCH("/users/:id/role", superMw, adminH.ChangeUserRole)
 		admin.DELETE("/users/:id", superMw, adminH.DeleteUser)

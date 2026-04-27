@@ -96,6 +96,16 @@ type ChangeRoleRequest struct {
 	Role UserRole `json:"role" binding:"required"`
 }
 
+// CreateManagedUserRequest untuk POST /api/admin/users (superadmin only)
+type CreateManagedUserRequest struct {
+	Name         string   `json:"name" binding:"required,min=2,max=100"`
+	Email        string   `json:"email" binding:"required,email"`
+	Password     string   `json:"password" binding:"required,min=6"`
+	Role         UserRole `json:"role" binding:"required"`
+	ProfileImage *string  `json:"profileImage"`
+	City         *string  `json:"city"`
+}
+
 type UserListFilter struct {
 	Role   UserRole `form:"role"`
 	Search string   `form:"search"`

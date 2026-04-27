@@ -199,6 +199,34 @@ class BookingCard extends StatelessWidget {
                           ),
                         ],
                       ),
+                      if (booking.bookedForName != null && booking.bookedForName!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.badge_outlined,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                booking.bookedForCompany != null && booking.bookedForCompany!.isNotEmpty
+                                    ? 'For: ${booking.bookedForName} (${booking.bookedForCompany})'
+                                    : 'For: ${booking.bookedForName}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),

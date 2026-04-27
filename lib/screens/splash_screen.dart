@@ -68,10 +68,12 @@ class _SplashScreenState extends State<SplashScreen>
 
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                authProvider.isAuthenticated
-                    ? const HomeScreen()
-                    : const LoginScreen(),
+            pageBuilder: (context, animation, secondaryAnimation) {
+              if (!authProvider.isAuthenticated) {
+                return const LoginScreen();
+              }
+              return const HomeScreen();
+            },
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);

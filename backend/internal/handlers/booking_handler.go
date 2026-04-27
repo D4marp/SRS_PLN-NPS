@@ -46,7 +46,9 @@ const bookingCols = `
 	id, user_id, room_id, booking_date, check_in_time, check_out_time,
 	number_of_guests, status, purpose,
 	rejection_reason, approved_by, approved_at,
-	room_name, room_location, room_image_url, user_name, user_email,
+	room_name, room_location, room_image_url,
+	booked_for_name, booked_for_company,
+	user_name, user_email,
 	created_at, updated_at
 `
 
@@ -59,6 +61,7 @@ func scanBooking(rows interface {
 		&b.Status, &b.Purpose,
 		&b.RejectionReason, &b.ApprovedBy, &b.ApprovedAt,
 		&b.RoomName, &b.RoomLocation, &b.RoomImageURL,
+		&b.BookedForName, &b.BookedForCompany,
 		&b.UserName, &b.UserEmail,
 		&b.CreatedAt, &b.UpdatedAt,
 	)
@@ -220,6 +223,8 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 		RoomName:       &room.Name,
 		RoomLocation:   &room.Location,
 		RoomImageURL:   &roomImageURL,
+		BookedForName:   req.BookedForName,
+		BookedForCompany: req.BookedForCompany,
 		UserName:       &uName,
 		UserEmail:      &uEmail,
 		CreatedAt:      now,
@@ -229,12 +234,14 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 		`INSERT INTO bookings (id, user_id, room_id, booking_date, check_in_time, check_out_time,
 		                      number_of_guests, status, purpose,
 		                      room_name, room_location, room_image_url,
+		                      booked_for_name, booked_for_company,
 		                      user_name, user_email, created_at)
-		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		booking.ID, booking.UserID, booking.RoomID, booking.BookingDate,
 		booking.CheckInTime, booking.CheckOutTime, booking.NumberOfGuests,
 		booking.Status, booking.Purpose,
 		booking.RoomName, booking.RoomLocation, booking.RoomImageURL,
+		booking.BookedForName, booking.BookedForCompany,
 		booking.UserName, booking.UserEmail, booking.CreatedAt,
 	)
 	if err != nil {

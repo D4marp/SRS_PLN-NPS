@@ -24,11 +24,15 @@ class _BookingScreenState extends State<BookingScreen> {
   int _durationMinutes = 60; // Default 60 minutes
   int _guestCount = 1;
   bool _isBooking = false;
+  final TextEditingController _bookedForNameController = TextEditingController();
+  final TextEditingController _bookedForCompanyController = TextEditingController();
   final TextEditingController _purposeController = TextEditingController();
   final TextEditingController _customDurationController = TextEditingController();
 
   @override
   void dispose() {
+    _bookedForNameController.dispose();
+    _bookedForCompanyController.dispose();
     _purposeController.dispose();
     _customDurationController.dispose();
     super.dispose();
@@ -81,6 +85,12 @@ class _BookingScreenState extends State<BookingScreen> {
         checkInTime: startTimeStr,
         checkOutTime: endTimeStr,
         numberOfGuests: _guestCount,
+        bookedForName: _bookedForNameController.text.trim().isNotEmpty
+          ? _bookedForNameController.text.trim()
+          : null,
+        bookedForCompany: _bookedForCompanyController.text.trim().isNotEmpty
+          ? _bookedForCompanyController.text.trim()
+          : null,
         purpose: _purposeController.text.trim().isNotEmpty ? _purposeController.text.trim() : null,
       );
 
@@ -230,6 +240,11 @@ class _BookingScreenState extends State<BookingScreen> {
 
             // Guests
             _buildGuestCountSection(),
+
+            const SizedBox(height: AppSpacing.lg),
+
+            // Booking recipient
+            _buildBookingForSection(),
 
             const SizedBox(height: AppSpacing.lg),
 
@@ -699,6 +714,48 @@ class _BookingScreenState extends State<BookingScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBookingForSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Booked For',
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _bookedForNameController,
+          decoration: InputDecoration(
+            hintText: 'Nama penerima booking (opsional)',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _bookedForCompanyController,
+          decoration: InputDecoration(
+            hintText: 'Instansi / perusahaan (opsional)',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

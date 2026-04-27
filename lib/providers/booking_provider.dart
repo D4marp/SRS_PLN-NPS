@@ -83,6 +83,8 @@ class BookingProvider extends ChangeNotifier {
     required String checkInTime,
     required String checkOutTime,
     required int numberOfGuests,
+    String? bookedForName,
+    String? bookedForCompany,
     String? purpose,
   }) async {
     try {
@@ -95,6 +97,8 @@ class BookingProvider extends ChangeNotifier {
         checkInTime: checkInTime,
         checkOutTime: checkOutTime,
         numberOfGuests: numberOfGuests,
+        bookedForName: bookedForName,
+        bookedForCompany: bookedForCompany,
         purpose: purpose,
       );
 
