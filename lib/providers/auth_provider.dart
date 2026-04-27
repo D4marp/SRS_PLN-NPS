@@ -1,6 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+
 import '../models/user_model.dart';
 import '../services/api_auth_service.dart';
 import '../utils/api_config.dart';
@@ -30,7 +32,13 @@ class AuthProvider extends ChangeNotifier {
 
       if (token != null && userJson != null) {
         ApiConfig.setToken(token);
-        _userModel = UserModel.fromJson(jsonDecode(userJson));
+        final persistedUser = UserModel.fromJson(jsonDecode(userJson));
+        final role = _roleFromJwt(token);
+        final userId = _userIdFromJwt(token);
+        _userModel = persistedUser.copyWith(
+          role: role,
+          id: userId ?? persistedUser.id,
+        );
       }
     } catch (e) {
       print('Auth init error: $e');
@@ -56,12 +64,14 @@ class AuthProvider extends ChangeNotifier {
 
       ApiConfig.setToken(token);
 
-      // Create user model
+      final role = _roleFromJwt(token);
+      final userId = _userIdFromJwt(token);
+
       final user = UserModel(
-        id: '', // Will be returned from backend later
+        id: userId ?? '',
         name: name,
         email: email,
-        role: UserRole.user,
+        role: role,
         city: city,
         profileImage: null,
         createdAt: DateTime.now(),
@@ -92,12 +102,14 @@ class AuthProvider extends ChangeNotifier {
 
       ApiConfig.setToken(token);
 
-      // Create user model from token (basic info)
+      final role = _roleFromJwt(token);
+      final userId = _userIdFromJwt(token);
+
       final user = UserModel(
-        id: '', // Decode from JWT if needed
+        id: userId ?? '',
         name: email.split('@').first,
         email: email,
-        role: UserRole.user,
+        role: role,
         city: null,
         profileImage: null,
         createdAt: DateTime.now(),
@@ -182,6 +194,37 @@ class AuthProvider extends ChangeNotifier {
   String? get userId => _userModel?.id;
 
   // Helper methods
+  UserRole _roleFromJwt(String token) {
+    try {
+      final payload = _jwtPayload(token);
+      return UserRoleX.fromString(payload['role'] as String?);
+    } catch (_) {
+      return UserRole.user;
+    }
+  }
+
+  String? _userIdFromJwt(String token) {
+    try {
+      final payload = _jwtPayload(token);
+      return payload['user_id'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Map<String, dynamic> _jwtPayload(String token) {
+    final parts = token.split('.');
+    if (parts.length != 3) {
+      throw FormatException('Invalid JWT token');
+    }
+
+    final payload = parts[1];
+    final normalized = base64Url.normalize(payload);
+    final decoded = utf8.decode(base64Url.decode(normalized));
+    final Map<String, dynamic> jsonPayload = jsonDecode(decoded);
+    return jsonPayload;
+  }
+
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();

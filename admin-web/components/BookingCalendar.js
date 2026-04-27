@@ -211,7 +211,7 @@ export default function BookingCalendar({
         </div>
       </header>
 
-      <div className="grid gap-4 xl:grid-cols-[1.45fr_1fr]">
+      <div className="space-y-4">
         <div className="overflow-hidden rounded-2xl border border-slate-200">
           <div className="grid grid-cols-7 bg-slate-50 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             {WEEKDAYS.map((day) => (
@@ -261,188 +261,196 @@ export default function BookingCalendar({
           ))}
         </div>
 
-        <aside className="grid max-h-[620px] gap-3 overflow-auto rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-slate-900">{prettyDateFromKey(selectedDateKey)}</h3>
-            {loading && <span className="text-xs text-slate-500">Sync...</span>}
-          </div>
+        <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Booking Tanggal Ini</h3>
+                <p className="text-sm text-slate-600">{prettyDateFromKey(selectedDateKey)}</p>
+              </div>
+              {loading && <span className="text-xs text-slate-500">Sync...</span>}
+            </div>
 
-          <form className="rounded-xl border border-sky-100 bg-white p-3" onSubmit={handleCreateSubmit}>
-            <h4 className="mb-2 text-sm font-semibold text-slate-800">Buat Booking Di Tanggal Ini</h4>
-            <div className="grid gap-2">
-              <select
-                className={fieldClass}
-                value={formState.roomId}
-                onChange={(event) => setFormState((prev) => ({ ...prev, roomId: event.target.value }))}
-                required
+            <form className="grid gap-3" onSubmit={handleCreateSubmit}>
+              <div className="grid gap-2">
+                <label className="text-sm font-semibold text-slate-800">Buat booking baru</label>
+                <select
+                  className={fieldClass}
+                  value={formState.roomId}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, roomId: event.target.value }))}
+                  required
+                >
+                  <option value="">Pilih Ruangan</option>
+                  {(rooms || []).map((room) => (
+                    <option key={room.id} value={room.id}>
+                      {room.name} - Kap. {room.maxGuests}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    className={fieldClass}
+                    type="text"
+                    value={formState.bookedForName}
+                    onChange={(event) =>
+                      setFormState((prev) => ({ ...prev, bookedForName: event.target.value }))
+                    }
+                    placeholder="Atas nama (opsional)"
+                  />
+                  <input
+                    className={fieldClass}
+                    type="text"
+                    value={formState.bookedForCompany}
+                    onChange={(event) =>
+                      setFormState((prev) => ({ ...prev, bookedForCompany: event.target.value }))
+                    }
+                    placeholder="Instansi / perusahaan (opsional)"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    className={fieldClass}
+                    type="time"
+                    value={formState.checkInTime}
+                    onChange={(event) =>
+                      setFormState((prev) => ({ ...prev, checkInTime: event.target.value }))
+                    }
+                    required
+                  />
+                  <input
+                    className={fieldClass}
+                    type="time"
+                    value={formState.checkOutTime}
+                    onChange={(event) =>
+                      setFormState((prev) => ({ ...prev, checkOutTime: event.target.value }))
+                    }
+                    required
+                  />
+                </div>
+
+                <input
+                  className={fieldClass}
+                  type="number"
+                  min="1"
+                  value={formState.numberOfGuests}
+                  onChange={(event) =>
+                    setFormState((prev) => ({ ...prev, numberOfGuests: event.target.value }))
+                  }
+                  placeholder="Jumlah peserta"
+                  required
+                />
+
+                <input
+                  className={fieldClass}
+                  type="text"
+                  value={formState.purpose}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, purpose: event.target.value }))}
+                  placeholder="Tujuan rapat (opsional)"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="h-10 w-full rounded-xl bg-gradient-to-r from-[#0099ff] to-[#0077cc] text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={!canSubmitBooking || creatingBooking}
               >
-                <option value="">Pilih Ruangan</option>
-                {(rooms || []).map((room) => (
-                  <option key={room.id} value={room.id}>
-                    {room.name} - Kap. {room.maxGuests}
-                  </option>
+                {creatingBooking ? 'Mengirim...' : 'Booking Tanggal Ini'}
+              </button>
+            </form>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-slate-50 p-3 max-h-[620px] overflow-auto">
+            {selectedBookings.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-700">
+                Tidak ada booking di tanggal ini.
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {selectedBookings.map((booking) => (
+                  <article key={booking.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <header className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{booking.roomName || 'Room tanpa nama'}</p>
+                        <p className="text-sm text-slate-600">{booking.checkInTime} - {booking.checkOutTime}</p>
+                      </div>
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${statusClass(booking.status)}`}>
+                        {booking.status}
+                      </span>
+                    </header>
+
+                    <div className="space-y-2 text-sm text-slate-700">
+                      <p>{booking.userName || 'Unknown User'} ({booking.userEmail || '-'})</p>
+                      {booking.bookedForName ? (
+                        <p>
+                          For: {booking.bookedForName}
+                          {booking.bookedForCompany ? ` · ${booking.bookedForCompany}` : ''}
+                        </p>
+                      ) : null}
+                      <p>Guests: {booking.numberOfGuests}</p>
+                      {booking.purpose ? (
+                        <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">{booking.purpose}</p>
+                      ) : null}
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {booking.status === 'pending' && (
+                        <>
+                          <button
+                            type="button"
+                            className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
+                            onClick={() => onBookingAction('approve', booking)}
+                            disabled={actionLoadingKey === `approve:${booking.id}`}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                            onClick={() => onBookingAction('reject', booking)}
+                            disabled={actionLoadingKey === `reject:${booking.id}`}
+                          >
+                            Reject
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
+                            onClick={() => onBookingAction('cancel', booking)}
+                            disabled={actionLoadingKey === `cancel:${booking.id}`}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+
+                      {booking.status === 'confirmed' && (
+                        <>
+                          <button
+                            type="button"
+                            className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
+                            onClick={() => onBookingAction('complete', booking)}
+                            disabled={actionLoadingKey === `complete:${booking.id}`}
+                          >
+                            Complete
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
+                            onClick={() => onBookingAction('cancel', booking)}
+                            disabled={actionLoadingKey === `cancel:${booking.id}`}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </article>
                 ))}
-              </select>
-
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  className={fieldClass}
-                  type="text"
-                  value={formState.bookedForName}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, bookedForName: event.target.value }))
-                  }
-                  placeholder="Atas nama (opsional)"
-                />
-                <input
-                  className={fieldClass}
-                  type="text"
-                  value={formState.bookedForCompany}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, bookedForCompany: event.target.value }))
-                  }
-                  placeholder="Instansi / perusahaan (opsional)"
-                />
               </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  className={fieldClass}
-                  type="time"
-                  value={formState.checkInTime}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, checkInTime: event.target.value }))
-                  }
-                  required
-                />
-                <input
-                  className={fieldClass}
-                  type="time"
-                  value={formState.checkOutTime}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, checkOutTime: event.target.value }))
-                  }
-                  required
-                />
-              </div>
-
-              <input
-                className={fieldClass}
-                type="number"
-                min="1"
-                value={formState.numberOfGuests}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, numberOfGuests: event.target.value }))
-                }
-                placeholder="Jumlah peserta"
-                required
-              />
-
-              <input
-                className={fieldClass}
-                type="text"
-                value={formState.purpose}
-                onChange={(event) => setFormState((prev) => ({ ...prev, purpose: event.target.value }))}
-                placeholder="Tujuan rapat (opsional)"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="mt-3 h-10 w-full rounded-xl bg-gradient-to-r from-[#0099ff] to-[#0077cc] text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={!canSubmitBooking || creatingBooking}
-            >
-              {creatingBooking ? 'Mengirim...' : 'Booking Tanggal Ini'}
-            </button>
-          </form>
-
-          {selectedBookings.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-3 text-sm text-slate-700">
-              Tidak ada booking di tanggal ini.
-            </div>
-          ) : (
-            <div className="grid gap-2">
-              {selectedBookings.map((booking) => (
-                <article key={booking.id} className="rounded-xl border border-slate-200 bg-white p-3">
-                  <header className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-slate-800">{booking.roomName || 'Room tanpa nama'}</p>
-                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${statusClass(booking.status)}`}>
-                      {booking.status}
-                    </span>
-                  </header>
-
-                  <ul className="space-y-1 text-xs text-slate-600">
-                    <li>{booking.checkInTime} - {booking.checkOutTime}</li>
-                    <li>{booking.userName || 'Unknown User'} ({booking.userEmail || '-'})</li>
-                    {booking.bookedForName ? (
-                      <li>
-                        For: {booking.bookedForName}
-                        {booking.bookedForCompany ? ` · ${booking.bookedForCompany}` : ''}
-                      </li>
-                    ) : null}
-                    <li>Guests: {booking.numberOfGuests}</li>
-                  </ul>
-
-                  {booking.purpose ? (
-                    <p className="mt-2 rounded-lg bg-slate-50 p-2 text-xs text-slate-700">{booking.purpose}</p>
-                  ) : null}
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {booking.status === 'pending' && (
-                      <>
-                        <button
-                          type="button"
-                          className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
-                          onClick={() => onBookingAction('approve', booking)}
-                          disabled={actionLoadingKey === `approve:${booking.id}`}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
-                          onClick={() => onBookingAction('reject', booking)}
-                          disabled={actionLoadingKey === `reject:${booking.id}`}
-                        >
-                          Reject
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
-                          onClick={() => onBookingAction('cancel', booking)}
-                          disabled={actionLoadingKey === `cancel:${booking.id}`}
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    )}
-
-                    {booking.status === 'confirmed' && (
-                      <>
-                        <button
-                          type="button"
-                          className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
-                          onClick={() => onBookingAction('complete', booking)}
-                          disabled={actionLoadingKey === `complete:${booking.id}`}
-                        >
-                          Complete
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
-                          onClick={() => onBookingAction('cancel', booking)}
-                          disabled={actionLoadingKey === `cancel:${booking.id}`}
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </aside>
+            )}
+          </section>
+        </div>
       </div>
     </section>
   );

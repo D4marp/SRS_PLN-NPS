@@ -5,8 +5,6 @@ import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
 import '../../core/gen/assets.gen.dart';
 import '../home/home_screen.dart';
-import 'signup_screen.dart';
-import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -274,25 +272,6 @@ class _LoginScreenState extends State<LoginScreen>
                                     ),
                                   ),
                                   const Spacer(),
-                                  GestureDetector(
-                                    onTap: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const ForgotPasswordScreen(),
-                                        ),
-                                      );
-                                    },
-                                    child: const Text(
-                                      'Forgot Password?',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontFamily: 'Plus Jakarta Sans',
-                                        fontWeight: FontWeight.w400,
-                                      ),
-                                    ),
-                                  ),
                                 ],
                               ),
 
@@ -344,48 +323,6 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ],
                           ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Sign Up Link
-                      Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Don\'t have an account? ',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontFamily: 'Plus Jakarta Sans',
-                                color: Colors.white,
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                    builder: (context) => const SignUpScreen(),
-                                  ),
-                                );
-                              },
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: const Text(
-                                'Sign Up',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontFamily: 'Plus Jakarta Sans',
-                                  color: Color(0xFFEC0303),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
                         ),
                       ),
 

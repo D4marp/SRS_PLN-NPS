@@ -858,19 +858,20 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                       ),
                 
                 // Add Booking Button (Bottom Right)
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: GestureDetector(
-                    onTap: () => _showBookingDialog(context),
-                    child: Center(
-                      child: Assets.icon.addBook.svg(
-                        width: screenWidth * 0.057,
-                        height: screenWidth * 0.057,
-                      ),
-                    ),
-                  ),
-                ),
+                // Temporarily hidden because booking is currently only available from admin.
+                // Positioned(
+                //   right: 0,
+                //   bottom: 0,
+                //   child: GestureDetector(
+                //     onTap: () => _showBookingDialog(context),
+                //     child: Center(
+                //       child: Assets.icon.addBook.svg(
+                //         width: screenWidth * 0.057,
+                //         height: screenWidth * 0.057,
+                //       ),
+                //     ),
+                //   ),
+                // ),
               ],
             );
           },

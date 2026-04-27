@@ -441,10 +441,24 @@ export default function DashboardPage() {
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-xl font-semibold text-slate-900">Ringkasan Operasional</h2>
               <p className="mt-2 text-sm leading-relaxed text-slate-800">
-                Gunakan menu sidebar untuk pindah ke kalender booking atau manajemen user. Dari menu Booking Calendar,
-                admin dapat klik tanggal lalu langsung membuat booking baru, approve/reject booking pending,
-                atau menyelesaikan booking confirmed.
+                Dashboard ini memberi pandangan cepat atas aktivitas booking ruang rapat.
+                Periksa booking berstatus pending, konfirmasi booking yang siap digunakan,
+                dan batalkan booking yang tidak diperlukan agar ruang tetap tersedia untuk tim.
               </p>
+              <ul className="mt-4 space-y-2 text-sm text-slate-700">
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-sky-500" />
+                  Pantau jumlah booking, approval, dan ruang yang siap dipakai setiap hari.
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-sky-500" />
+                  Gunakan Booking Calendar untuk memilih tanggal dan mengelola booking secara operasional.
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-sky-500" />
+                  Pastikan booking confirmed ditandai complete setelah acara selesai.
+                </li>
+              </ul>
               <div className="mt-4 inline-flex rounded-lg bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700">
                 {dashboardLoading ? 'Menyinkronkan data...' : `Data terakhir tersinkron: ${new Date().toLocaleTimeString('id-ID')}`}
               </div>
