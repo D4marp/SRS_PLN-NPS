@@ -1,8 +1,7 @@
-import { DM_Sans, Space_Grotesk } from 'next/font/google';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 
-const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-body' });
-const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-display' });
+const plusJakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-body' });
 
 export const metadata = {
   title: 'Smart Room Scheduler | PLN NPS',
@@ -12,7 +11,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${dmSans.variable} ${spaceGrotesk.variable}`}>{children}</body>
+      <body className={`${plusJakarta.variable}`}>{children}</body>
     </html>
   );
 }
