@@ -127,3 +127,26 @@ export function deleteUser(token, userId) {
     token,
   });
 }
+
+export function createRoom(token, payload) {
+  return request('/api/rooms', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
+export function updateRoom(token, roomId, payload) {
+  return request(`/api/rooms/${roomId}`, {
+    method: 'PUT',
+    token,
+    body: payload,
+  });
+}
+
+export function deleteRoom(token, roomId) {
+  return request(`/api/rooms/${roomId}`, {
+    method: 'DELETE',
+    token,
+  });
+}

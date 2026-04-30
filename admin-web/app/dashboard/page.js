@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
+  Building2,
   CalendarDays,
   LayoutDashboard,
   LogOut,
@@ -12,6 +13,7 @@ import {
   Users,
 } from 'lucide-react';
 import BookingCalendar from '@/components/BookingCalendar';
+import RoomManagement from '@/components/RoomManagement';
 import StatCard from '@/components/StatCard';
 import UserManagement from '@/components/UserManagement';
 import {
@@ -20,7 +22,9 @@ import {
   changeUserRole,
   completeBooking,
   createBooking,
+  createRoom,
   createUser,
+  deleteRoom,
   deleteUser,
   getAdminBookings,
   getMe,
@@ -28,6 +32,7 @@ import {
   listRooms,
   listUsers,
   rejectBooking,
+  updateRoom,
 } from '@/lib/api';
 import {
   clearSession,
@@ -40,6 +45,7 @@ import {
 const MENU_ITEMS = [
   { key: 'overview', label: 'Overview', description: 'Ringkasan operasional', icon: LayoutDashboard },
   { key: 'bookings', label: 'Booking Calendar', description: 'Kelola booking harian', icon: CalendarDays },
+  { key: 'rooms', label: 'Rooms', description: 'Kelola ruangan', icon: Building2 },
   { key: 'users', label: 'User Management', description: 'Atur akun dan role', icon: Users },
 ];
 
@@ -62,6 +68,10 @@ export default function DashboardPage() {
   const [creatingUser, setCreatingUser] = useState(false);
   const [userActionKey, setUserActionKey] = useState('');
   const [userFilters, setUserFilters] = useState({ search: '', role: '' });
+
+  const [roomsLoading, setRoomsLoading] = useState(false);
+  const [creatingRoom, setCreatingRoom] = useState(false);
+  const [roomActionKey, setRoomActionKey] = useState('');
 
   const [activeMenu, setActiveMenu] = useState('overview');
   const [error, setError] = useState('');
@@ -109,11 +119,15 @@ export default function DashboardPage() {
   }, [token, currentUser?.role, userFilters]);
 
   const loadRooms = useCallback(async () => {
+    setRoomsLoading(true);
+    setError('');
     try {
-      const roomList = await listRooms({ available: true });
+      const roomList = await listRooms();
       setRooms(Array.isArray(roomList) ? roomList : []);
-    } catch {
-      setRooms([]);
+    } catch (roomsError) {
+      setError(roomsError.message || 'Gagal memuat ruangan');
+    } finally {
+      setRoomsLoading(false);
     }
   }, []);
 
@@ -160,6 +174,60 @@ export default function DashboardPage() {
     if (!token) return;
     loadRooms();
   }, [token, loadRooms]);
+
+  const handleCreateRoom = async (payload) => {
+    if (!token) return;
+
+    setCreatingRoom(true);
+    setError('');
+    setInfo('');
+
+    try {
+      await createRoom(token, payload);
+      setInfo('Ruangan baru berhasil dibuat.');
+      await loadRooms();
+    } catch (createError) {
+      setError(createError.message || 'Gagal membuat ruangan');
+    } finally {
+      setCreatingRoom(false);
+    }
+  };
+
+  const handleUpdateRoom = async (roomId, payload) => {
+    if (!token) return;
+
+    setRoomActionKey(`update:${roomId}`);
+    setError('');
+    setInfo('');
+
+    try {
+      await updateRoom(token, roomId, payload);
+      setInfo('Ruangan berhasil diperbarui.');
+      await loadRooms();
+    } catch (updateError) {
+      setError(updateError.message || 'Gagal memperbarui ruangan');
+    } finally {
+      setRoomActionKey('');
+    }
+  };
+
+  const handleDeleteRoom = async (roomId) => {
+    if (!token) return;
+
+    setRoomActionKey(`delete:${roomId}`);
+    setError('');
+    setInfo('');
+
+    try {
+      await deleteRoom(token, roomId);
+      setInfo('Ruangan berhasil dihapus.');
+      await loadRooms();
+    } catch (deleteError) {
+      setError(deleteError.message || 'Gagal menghapus ruangan');
+    } finally {
+      setRoomActionKey('');
+    }
+  };
 
   useEffect(() => {
     if (!token || currentUser?.role !== 'superadmin') return;
@@ -540,6 +608,18 @@ export default function DashboardPage() {
             creatingBooking={creatingBooking}
             onBookingAction={handleBookingAction}
             onCreateBooking={handleCreateBooking}
+          />
+        )}
+
+        {activeMenu === 'rooms' && (
+          <RoomManagement
+            rooms={rooms}
+            loading={roomsLoading}
+            onCreateRoom={handleCreateRoom}
+            onUpdateRoom={handleUpdateRoom}
+            onDeleteRoom={handleDeleteRoom}
+            creatingRoom={creatingRoom}
+            actionBusyKey={roomActionKey}
           />
         )}
 
