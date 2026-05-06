@@ -35,6 +35,16 @@ class BookingModel {
   final String? userName;
   final String? userEmail;
 
+  // Feedback fields
+  final bool hasFeedback;
+  final String? feedbackSatisfaction; // "satisfied" or "unsatisfied"
+  final String? feedbackReason;
+
+  // Early check-in/check-out fields
+  final String? actualCheckInTime; // Format: "HH:mm"
+  final String? actualCheckOutTime; // Format: "HH:mm"
+  final int? actualDurationMinutes;
+
   BookingModel({
     required this.id,
     required this.userId,
@@ -57,9 +67,19 @@ class BookingModel {
     this.bookedForCompany,
     this.userName,
     this.userEmail,
+    this.hasFeedback = false,
+    this.feedbackSatisfaction,
+    this.feedbackReason,
+    this.actualCheckInTime,
+    this.actualCheckOutTime,
+    this.actualDurationMinutes,
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
+    final feedbackJson = json['feedback'];
+    final hasNestedFeedback = feedbackJson is Map<String, dynamic>;
+    final nestedFeedback = hasNestedFeedback ? Map<String, dynamic>.from(feedbackJson) : null;
+
     return BookingModel(
       id: json['id'] ?? '',
       userId: json['userId'] ?? '',
@@ -90,6 +110,16 @@ class BookingModel {
       bookedForCompany: json['bookedForCompany'],
       userName: json['userName'],
       userEmail: json['userEmail'],
+      hasFeedback: json['hasFeedback'] ?? hasNestedFeedback,
+      feedbackSatisfaction: nestedFeedback?['satisfactionLevel'] ?? json['feedbackSatisfaction'],
+      feedbackReason: nestedFeedback?['reason'] ?? json['feedbackReason'],
+      actualCheckInTime: json['actualCheckInTime'],
+      actualCheckOutTime: json['actualCheckOutTime'],
+      actualDurationMinutes: json['actualDurationMinutes'] is int
+          ? json['actualDurationMinutes']
+          : (json['actualDurationMinutes'] != null
+              ? int.tryParse(json['actualDurationMinutes'].toString())
+              : null),
     );
   }
 
@@ -116,6 +146,12 @@ class BookingModel {
       'bookedForCompany': bookedForCompany,
       'userName': userName,
       'userEmail': userEmail,
+      'hasFeedback': hasFeedback,
+      'feedbackSatisfaction': feedbackSatisfaction,
+      'feedbackReason': feedbackReason,
+      'actualCheckInTime': actualCheckInTime,
+      'actualCheckOutTime': actualCheckOutTime,
+      'actualDurationMinutes': actualDurationMinutes,
     };
   }
 
@@ -141,6 +177,12 @@ class BookingModel {
     String? bookedForCompany,
     String? userName,
     String? userEmail,
+    bool? hasFeedback,
+    String? feedbackSatisfaction,
+    String? feedbackReason,
+    String? actualCheckInTime,
+    String? actualCheckOutTime,
+    int? actualDurationMinutes,
   }) {
     return BookingModel(
       id: id ?? this.id,
@@ -164,6 +206,12 @@ class BookingModel {
       bookedForCompany: bookedForCompany ?? this.bookedForCompany,
       userName: userName ?? this.userName,
       userEmail: userEmail ?? this.userEmail,
+      hasFeedback: hasFeedback ?? this.hasFeedback,
+      feedbackSatisfaction: feedbackSatisfaction ?? this.feedbackSatisfaction,
+      feedbackReason: feedbackReason ?? this.feedbackReason,
+      actualCheckInTime: actualCheckInTime ?? this.actualCheckInTime,
+      actualCheckOutTime: actualCheckOutTime ?? this.actualCheckOutTime,
+      actualDurationMinutes: actualDurationMinutes ?? this.actualDurationMinutes,
     );
   }
 
@@ -189,6 +237,64 @@ class BookingModel {
 
   bool get isActive {
     return status == BookingStatus.confirmed;
+  }
+
+  bool get shouldShowFeedbackModal {
+    return status == BookingStatus.completed && !hasFeedback;
+  }
+
+  bool get shouldShowEarlyCheckInCheckOut {
+    return (status == BookingStatus.confirmed || status == BookingStatus.pending);
+  }
+
+  bool get hasActualCheckTimes {
+    return actualCheckInTime != null && actualCheckOutTime != null;
+  }
+
+  String get actualDurationLabel {
+    if (actualDurationMinutes != null) {
+      final hours = actualDurationMinutes! ~/ 60;
+      final minutes = actualDurationMinutes! % 60;
+      if (hours > 0 && minutes > 0) {
+        return '$hours jam $minutes menit';
+      }
+      if (hours > 0) {
+        return '$hours jam';
+      }
+      return '$minutes menit';
+    }
+
+    if (actualCheckInTime == null || actualCheckOutTime == null) {
+      return '-';
+    }
+
+    final start = actualCheckInTime!.split(':');
+    final end = actualCheckOutTime!.split(':');
+    if (start.length != 2 || end.length != 2) return '-';
+
+    final startHour = int.tryParse(start[0]);
+    final startMinute = int.tryParse(start[1]);
+    final endHour = int.tryParse(end[0]);
+    final endMinute = int.tryParse(end[1]);
+    if (startHour == null || startMinute == null || endHour == null || endMinute == null) {
+      return '-';
+    }
+
+    final startMinutes = startHour * 60 + startMinute;
+    var endMinutes = endHour * 60 + endMinute;
+    if (endMinutes < startMinutes) {
+      endMinutes += 24 * 60;
+    }
+    final durationMinutes = endMinutes - startMinutes;
+    final hours = durationMinutes ~/ 60;
+    final minutes = durationMinutes % 60;
+    if (hours > 0 && minutes > 0) {
+      return '$hours jam $minutes menit';
+    }
+    if (hours > 0) {
+      return '$hours jam';
+    }
+    return '$minutes menit';
   }
 
   String get formattedDate {

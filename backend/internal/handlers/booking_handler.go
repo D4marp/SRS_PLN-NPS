@@ -48,6 +48,7 @@ const bookingCols = `
 	rejection_reason, approved_by, approved_at,
 	room_name, room_location, room_image_url,
 	booked_for_name, booked_for_company,
+	actual_check_in_time, actual_check_out_time, actual_duration_minutes,
 	user_name, user_email,
 	created_at, updated_at
 `
@@ -62,6 +63,7 @@ func scanBooking(rows interface {
 		&b.RejectionReason, &b.ApprovedBy, &b.ApprovedAt,
 		&b.RoomName, &b.RoomLocation, &b.RoomImageURL,
 		&b.BookedForName, &b.BookedForCompany,
+		&b.ActualCheckInTime, &b.ActualCheckOutTime, &b.ActualDurationMinutes,
 		&b.UserName, &b.UserEmail,
 		&b.CreatedAt, &b.UpdatedAt,
 	)
@@ -152,6 +154,18 @@ func (h *BookingHandler) GetBooking(c *gin.Context) {
 		utils.Error(c, http.StatusForbidden, "access denied")
 		return
 	}
+
+	// Load feedback if it exists
+	var feedback models.Feedback
+	feedbackErr := h.db.QueryRowContext(context.Background(),
+		`SELECT id, booking_id, user_id, satisfaction_level, reason, created_at
+		 FROM feedbacks WHERE booking_id = ?`, id).
+		Scan(&feedback.ID, &feedback.BookingID, &feedback.UserID, &feedback.SatisfactionLevel, &feedback.Reason, &feedback.CreatedAt)
+
+	if feedbackErr == nil {
+		b.Feedback = &feedback
+	}
+
 	utils.Success(c, http.StatusOK, b)
 }
 
@@ -387,6 +401,87 @@ func (h *BookingHandler) CompleteBooking(c *gin.Context) {
 		gin.H{"id": id, "status": "completed"})
 }
 
+func (h *BookingHandler) UpdateCheckInCheckOut(c *gin.Context) {
+	id := c.Param("id")
+	currentUserID := c.GetString("userID")
+	role := c.GetString("role")
+
+	var req models.CheckInCheckOutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Error(c, http.StatusBadRequest, "invalid request: "+err.Error())
+		return
+	}
+	if req.ActualCheckInTime == nil && req.ActualCheckOutTime == nil {
+		utils.Error(c, http.StatusBadRequest, "at least one actual time must be provided")
+		return
+	}
+
+	var ownerID string
+	var status models.BookingStatus
+	var currentCheckIn sql.NullString
+	var currentCheckOut sql.NullString
+	err := h.db.QueryRowContext(context.Background(),
+		`SELECT user_id, status, actual_check_in_time, actual_check_out_time
+		 FROM bookings WHERE id = ?`, id).
+		Scan(&ownerID, &status, &currentCheckIn, &currentCheckOut)
+	if err != nil {
+		utils.Error(c, http.StatusNotFound, "booking not found")
+		return
+	}
+
+	isAdmin := role == "admin" || role == "superadmin"
+	if !isAdmin && ownerID != currentUserID {
+		utils.Error(c, http.StatusForbidden, "access denied")
+		return
+	}
+	if status == models.StatusRejected || status == models.StatusCancelled {
+		utils.Error(c, http.StatusBadRequest, "cannot update actual times for cancelled or rejected booking")
+		return
+	}
+
+	actualCheckIn := currentCheckIn.String
+	actualCheckOut := currentCheckOut.String
+	if req.ActualCheckInTime != nil {
+		actualCheckIn = *req.ActualCheckInTime
+	}
+	if req.ActualCheckOutTime != nil {
+		actualCheckOut = *req.ActualCheckOutTime
+	}
+
+	var actualDurationMinutes sql.NullInt64
+	if actualCheckIn != "" && actualCheckOut != "" {
+		startMinutes, startErr := parseTimeToMinutes(actualCheckIn)
+		endMinutes, endErr := parseTimeToMinutes(actualCheckOut)
+		if startErr != nil || endErr != nil {
+			utils.Error(c, http.StatusBadRequest, "actual times must use HH:mm format")
+			return
+		}
+		if endMinutes < startMinutes {
+			endMinutes += 24 * 60
+		}
+		actualDurationMinutes = sql.NullInt64{Int64: int64(endMinutes - startMinutes), Valid: true}
+	}
+
+	now := time.Now().UnixMilli()
+	_, err = h.db.ExecContext(context.Background(),
+		`UPDATE bookings
+		 SET actual_check_in_time = ?, actual_check_out_time = ?, actual_duration_minutes = ?, updated_at = ?
+		 WHERE id = ?`,
+		nullableString(actualCheckIn), nullableString(actualCheckOut), actualDurationMinutes, now, id)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "failed to update check-in/check-out times")
+		return
+	}
+
+	go h.broadcastBookings()
+	utils.SuccessMessage(c, http.StatusOK, "check-in/check-out updated", gin.H{
+		"id":                   id,
+		"actualCheckInTime":     actualCheckIn,
+		"actualCheckOutTime":    actualCheckOut,
+		"actualDurationMinutes": actualDurationMinutes.Int64,
+	})
+}
+
 func (h *BookingHandler) GetRoomBookings(c *gin.Context) {
 	roomID := c.Param("id")
 	dateStr := c.Query("date")
@@ -428,4 +523,19 @@ func (h *BookingHandler) recordHistory(bookingID, from, to, changedBy, note stri
 		 VALUES (?,?,?,?,?,?,?)`,
 		uuid.New().String(), bookingID, from, to, changedBy, note, time.Now().UnixMilli(),
 	)
+}
+
+func parseTimeToMinutes(value string) (int, error) {
+	parsed, err := time.Parse("15:04", value)
+	if err != nil {
+		return 0, err
+	}
+	return parsed.Hour()*60 + parsed.Minute(), nil
+}
+
+func nullableString(value string) interface{} {
+	if value == "" {
+		return nil
+	}
+	return value
 }

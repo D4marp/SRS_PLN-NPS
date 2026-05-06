@@ -36,10 +36,15 @@ type Booking struct {
 	RoomImageURL     *string `json:"roomImageUrl" db:"room_image_url"`
 	BookedForName    *string `json:"bookedForName" db:"booked_for_name"`
 	BookedForCompany *string `json:"bookedForCompany" db:"booked_for_company"`
+	ActualCheckInTime    *string `json:"actualCheckInTime" db:"actual_check_in_time"`
+	ActualCheckOutTime   *string `json:"actualCheckOutTime" db:"actual_check_out_time"`
+	ActualDurationMinutes *int    `json:"actualDurationMinutes" db:"actual_duration_minutes"`
 	UserName         *string `json:"userName" db:"user_name"`
 	UserEmail        *string `json:"userEmail" db:"user_email"`
 	CreatedAt        int64   `json:"createdAt" db:"created_at"`
 	UpdatedAt        *int64  `json:"updatedAt" db:"updated_at"`
+	// Feedback (optional, loaded separately)
+	Feedback         *Feedback `json:"feedback,omitempty"`
 }
 
 type CreateBookingRequest struct {
@@ -55,6 +60,11 @@ type CreateBookingRequest struct {
 
 type ApproveBookingRequest struct {
 	Note *string `json:"note"`
+}
+
+type CheckInCheckOutRequest struct {
+	ActualCheckInTime  *string `json:"actualCheckInTime"`
+	ActualCheckOutTime *string `json:"actualCheckOutTime"`
 }
 
 type RejectBookingRequest struct {

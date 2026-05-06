@@ -306,64 +306,23 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
     final endTime = _calculateEndTime();
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Background with gradient circles
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: const Color(0xFF170F0F),
-            child: Stack(
-              children: [
-                // Top right gradient circle
-                Positioned(
-                  left: MediaQuery.of(context).size.width * 0.4,
-                  top: -191,
-                  child: Container(
-                    width: 504,
-                    height: 504,
-                    decoration: const ShapeDecoration(
-                      gradient: RadialGradient(
-                        center: Alignment(0.50, 0.50),
-                        radius: 0.52,
-                        colors: [Color(0xFF690011), Color(0xFF34000B)],
-                      ),
-                      shape: OvalBorder(
-                        side: BorderSide(width: 2, color: Color(0xFFEC0303)),
-                      ),
-                    ),
-                  ),
-                ),
-                // Top left gradient circle
-                Positioned(
-                  left: -78,
-                  top: -426,
-                  child: Container(
-                    width: 504,
-                    height: 504,
-                    decoration: const ShapeDecoration(
-                      gradient: RadialGradient(
-                        center: Alignment(0.16, 0.82),
-                        radius: 0.65,
-                        colors: [Color(0xFF34000B), Color(0xFFAF0406)],
-                      ),
-                      shape: OvalBorder(
-                        side: BorderSide(width: 2, color: Color(0xFFEC0303)),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+          Positioned.fill(
+            child: Image(
+              image: Assets.images.bgBooking.provider(),
+              fit: BoxFit.cover,
             ),
           ),
-          // Content
-          SafeArea(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+          Positioned.fill(
+            child: SafeArea(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                     // AppBar Custom
                     Padding(
                       padding: const EdgeInsets.only(top: 20, bottom: 20),
@@ -842,7 +801,8 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
                 ),
               ),
               const SizedBox(height: 30),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -209,7 +209,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                 // Background Image
                 Positioned.fill(
                   child: Image(
-                    image: Assets.images.tabScreen.provider(),
+                    image: Assets.images.myBookings.provider(),
                     fit: BoxFit.cover,
                   ),
                 ),

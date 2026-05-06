@@ -63,6 +63,7 @@ func (h *AdminHandler) GetAdminBookings(c *gin.Context) {
 	                 b.status, b.purpose, b.rejection_reason, b.approved_by, b.approved_at,
 	                 b.room_name, b.room_location, b.room_image_url,
 	                 b.booked_for_name, b.booked_for_company,
+	                 b.actual_check_in_time, b.actual_check_out_time, b.actual_duration_minutes,
 	                 b.user_name, b.user_email, b.created_at, b.updated_at,
 	                 reviewer.name AS reviewer_name
 	          FROM bookings b
@@ -111,13 +112,32 @@ func (h *AdminHandler) GetAdminBookings(c *gin.Context) {
 			&b.Status, &b.Purpose, &b.RejectionReason, &b.ApprovedBy, &b.ApprovedAt,
 			&b.RoomName, &b.RoomLocation, &b.RoomImageURL,
 			&b.BookedForName, &b.BookedForCompany,
+			&b.ActualCheckInTime, &b.ActualCheckOutTime, &b.ActualDurationMinutes,
 			&b.UserName, &b.UserEmail, &b.CreatedAt, &b.UpdatedAt,
 			&reviewerName,
 		); err == nil {
+			if feedback, feedbackErr := h.loadFeedback(b.ID); feedbackErr == nil {
+				b.Feedback = feedback
+			}
 			bookings = append(bookings, AdminBookingView{Booking: b, ReviewerName: reviewerName})
 		}
 	}
 	utils.Success(c, http.StatusOK, bookings)
+}
+
+func (h *AdminHandler) loadFeedback(bookingID string) (*models.Feedback, error) {
+	var feedback models.Feedback
+	err := h.db.QueryRowContext(context.Background(),
+		`SELECT id, booking_id, user_id, satisfaction_level, reason, created_at
+		 FROM feedbacks WHERE booking_id = ?`, bookingID).
+		Scan(&feedback.ID, &feedback.BookingID, &feedback.UserID, &feedback.SatisfactionLevel, &feedback.Reason, &feedback.CreatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &feedback, nil
 }
 
 func (h *AdminHandler) ListUsers(c *gin.Context) {

@@ -55,6 +55,10 @@ export function getStats(token) {
   return request('/api/admin/stats', { token });
 }
 
+export function getFeedbackStats(token) {
+  return request('/api/feedbacks/stats', { token });
+}
+
 export function getAdminBookings(token, filters = {}) {
   return request('/api/admin/bookings', { token, query: filters });
 }

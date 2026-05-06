@@ -56,6 +56,40 @@ class ApiBookingService {
         Map<String, dynamic>.from(resp.data['data'] as Map));
   }
 
+  /// Submit feedback for a completed booking (JWT required).
+  /// [satisfaction] should be "satisfied" or "unsatisfied"
+  static Future<BookingModel> submitFeedback({
+    required String bookingId,
+    required String satisfaction,
+    required String reason,
+  }) async {
+    await _dio().post(
+      '/api/bookings/$bookingId/feedback',
+      data: {
+        'satisfactionLevel': satisfaction,
+        'reason': reason,
+      },
+    );
+    return getBookingById(bookingId);
+  }
+
+  /// Submit early check-in/check-out times for a booking (JWT required).
+  /// [actualCheckInTime] and [actualCheckOutTime] format: "HH:mm"
+  static Future<BookingModel> submitCheckInCheckOut({
+    required String bookingId,
+    String? actualCheckInTime,
+    String? actualCheckOutTime,
+  }) async {
+    await _dio().patch(
+      '/api/bookings/$bookingId/checkin-checkout',
+      data: {
+        if (actualCheckInTime != null) 'actualCheckInTime': actualCheckInTime,
+        if (actualCheckOutTime != null) 'actualCheckOutTime': actualCheckOutTime,
+      },
+    );
+    return getBookingById(bookingId);
+  }
+
   // ─── Room Schedule (public) ─────────────────────────────────────────────────
 
   /// Fetch pending+confirmed bookings for a room on an optional date

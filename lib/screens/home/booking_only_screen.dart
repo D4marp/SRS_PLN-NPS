@@ -127,7 +127,7 @@ class _BookingOnlyScreenState extends State<BookingOnlyScreen>
         ),
         body: const Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryText),
           ),
         ),
         backgroundColor: Colors.white,
@@ -177,7 +177,7 @@ class _BookingOnlyScreenState extends State<BookingOnlyScreen>
                 icon: const Icon(Icons.refresh),
                 label: const Text('Refresh'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
+                  backgroundColor: AppColors.primaryText,
                   foregroundColor: Colors.white,
                 ),
               ),
@@ -214,9 +214,9 @@ class _BookingOnlyScreenState extends State<BookingOnlyScreen>
                       child: TabBar(
                         controller: _tabController,
                         isScrollable: true,
-                        labelColor: AppColors.primaryRed,
+                        labelColor: AppColors.primaryText,
                         unselectedLabelColor: AppColors.secondaryText,
-                        indicatorColor: AppColors.primaryRed,
+                        indicatorColor: AppColors.primaryText,
                         indicatorWeight: 3,
                         tabAlignment: TabAlignment.start,
                         tabs: _rooms.map((room) {
@@ -364,12 +364,12 @@ class _BookingOnlyScreenState extends State<BookingOnlyScreen>
             decoration: BoxDecoration(
               color: room.isAvailable
                   ? Colors.green.withOpacity(0.2)
-                  : Colors.red.withOpacity(0.2),
+                  : Colors.grey.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: room.isAvailable
                     ? Colors.green.withOpacity(0.7)
-                    : Colors.red.withOpacity(0.7),
+                    : Colors.grey.withOpacity(0.7),
                 width: 1.5,
               ),
             ),
@@ -378,7 +378,7 @@ class _BookingOnlyScreenState extends State<BookingOnlyScreen>
               children: [
                 Icon(
                   room.isAvailable ? Icons.check_circle : Icons.cancel,
-                  color: room.isAvailable ? Colors.green : Colors.red,
+                  color: room.isAvailable ? Colors.green : Colors.grey,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -399,7 +399,7 @@ class _BookingOnlyScreenState extends State<BookingOnlyScreen>
   }
 
   Widget _buildScheduleSection(RoomModel room) {
-    final borderColor = room.isAvailable ? Colors.green.shade700 : Colors.red.shade700;
+    final borderColor = room.isAvailable ? Colors.green.shade700 : Colors.grey.shade400;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -492,7 +492,7 @@ class _BookingOnlyScreenState extends State<BookingOnlyScreen>
                   children: [
                     Icon(
                       Icons.access_time,
-                      color: AppColors.primaryRed,
+                      color: AppColors.primaryText,
                       size: 18,
                     ),
                     const SizedBox(width: 12),
@@ -525,6 +525,56 @@ class _BookingOnlyScreenState extends State<BookingOnlyScreen>
                     ),
                   ],
                 ),
+                if (booking.bookedForName != null && booking.bookedForName!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.badge_outlined,
+                        color: AppColors.secondaryText,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                                      'Untuk: ${booking.bookedForName!}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppColors.secondaryText,
+                                fontSize: 13,
+                              ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                if (booking.bookedForCompany != null && booking.bookedForCompany!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.apartment_outlined,
+                        color: AppColors.secondaryText,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Instansi: ${booking.bookedForCompany!}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppColors.secondaryText,
+                                fontSize: 13,
+                              ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 if (booking.purpose != null && booking.purpose!.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Row(
@@ -588,9 +638,9 @@ class _BookingOnlyScreenState extends State<BookingOnlyScreen>
       case BookingStatus.pending:
         return Colors.orange;
       case BookingStatus.cancelled:
-        return Colors.red;
+        return Colors.grey;
       case BookingStatus.rejected:
-        return Colors.red.shade800;
+        return Colors.grey.shade700;
       case BookingStatus.completed:
         return Colors.blue;
     }
@@ -626,8 +676,8 @@ class _BookingOnlyScreenState extends State<BookingOnlyScreen>
     required String value,
     required RoomModel room,
   }) {
-    final borderColor = room.isAvailable ? Colors.green.shade700 : Colors.red.shade700;
-    final bgColor = room.isAvailable ? Colors.green.shade900 : Colors.red.shade900;
+    final borderColor = room.isAvailable ? Colors.green.shade700 : Colors.grey.shade400;
+    final bgColor = room.isAvailable ? Colors.green.shade900 : Colors.grey.shade700;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -681,7 +731,7 @@ class _BookingOnlyScreenState extends State<BookingOnlyScreen>
           label: const Text('Book Now'),
           style: ElevatedButton.styleFrom(
             backgroundColor: room.isAvailable
-                ? AppColors.primaryRed
+                ? AppColors.primaryText
                 : Colors.grey.shade600,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -785,7 +835,7 @@ class _BookingFormWidgetState extends State<_BookingFormWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('This room is not available'),
-          backgroundColor: AppColors.errorRedDark,
+          backgroundColor: AppColors.primaryText,
         ),
       );
       return;
@@ -833,7 +883,7 @@ class _BookingFormWidgetState extends State<_BookingFormWidget> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Booking failed: ${e.toString()}'),
-            backgroundColor: AppColors.errorRedDark,
+            backgroundColor: AppColors.primaryText,
           ),
         );
       }
@@ -858,9 +908,9 @@ class _BookingFormWidgetState extends State<_BookingFormWidget> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primaryRed : Colors.white,
+            color: isSelected ? AppColors.primaryText : Colors.white,
             border: Border.all(
-              color: AppColors.primaryRed,
+              color: AppColors.primaryText,
               width: 2,
             ),
             borderRadius: BorderRadius.circular(8),
@@ -869,7 +919,7 @@ class _BookingFormWidgetState extends State<_BookingFormWidget> {
             label,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: isSelected ? Colors.white : AppColors.primaryRed,
+              color: isSelected ? Colors.white : AppColors.primaryText,
                   fontWeight: FontWeight.bold,
                 ),
           ),
@@ -905,7 +955,7 @@ class _BookingFormWidgetState extends State<_BookingFormWidget> {
                   'Book ${widget.room.name}',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primaryRed,
+                    color: AppColors.primaryText,
                       ),
                 ),
                 GestureDetector(
@@ -1063,10 +1113,10 @@ class _BookingFormWidgetState extends State<_BookingFormWidget> {
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: AppColors.primaryRedLight.withOpacity(0.1),
+                  color: AppColors.primaryText.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.primaryRedLight.withOpacity(0.3),
+                    color: AppColors.primaryText.withOpacity(0.2),
                 ),
               ),
               child: Column(
@@ -1090,7 +1140,7 @@ class _BookingFormWidgetState extends State<_BookingFormWidget> {
                         '${_timeToString(_startTime)} - ${_timeToString(endTime)}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primaryRed,
+                          color: AppColors.primaryText,
                             ),
                       ),
                     ],
@@ -1224,7 +1274,7 @@ class _BookingFormWidgetState extends State<_BookingFormWidget> {
                     ? _handleBooking
                     : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
+                  backgroundColor: AppColors.primaryText,
                   disabledBackgroundColor: AppColors.borderColor,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

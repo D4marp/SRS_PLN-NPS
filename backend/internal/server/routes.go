@@ -71,6 +71,23 @@ func (s *Server) registerRoutes(r *gin.Engine) {
 		bookings.POST("/:id/reject", adminMw, bookingH.RejectBooking)      // → rejected
 		bookings.PATCH("/:id/cancel", bookingH.CancelBooking)              // → cancelled
 		bookings.PATCH("/:id/complete", adminMw, bookingH.CompleteBooking) // → completed
+		bookings.PATCH("/:id/checkin-checkout", bookingH.UpdateCheckInCheckOut)
+
+		// Feedback
+		feedbackH := handlers.NewFeedbackHandler(s.db, rtManager)
+		bookings.POST("/:id/feedback", feedbackH.CreateFeedback)
+		bookings.GET("/:id/feedback", feedbackH.GetFeedback)
+	}
+
+	// -------------------------------------------------------------------------
+	// Feedbacks (admin panel)
+	// -------------------------------------------------------------------------
+	feedbackH := handlers.NewFeedbackHandler(s.db, rtManager)
+	feedbacks := r.Group("/api/feedbacks")
+	feedbacks.Use(authMw, adminMw)
+	{
+		feedbacks.GET("", feedbackH.ListFeedbacks)
+		feedbacks.GET("/stats", feedbackH.GetSatisfactionStats)
 	}
 
 	// -------------------------------------------------------------------------

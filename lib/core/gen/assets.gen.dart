@@ -120,6 +120,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/.gitkeep
   String get aGitkeep => 'assets/images/.gitkeep';
 
+  /// File path: assets/images/Bg_booking.png
+  AssetGenImage get bgBooking =>
+      const AssetGenImage('assets/images/Bg_booking.png');
+
   /// File path: assets/images/Booking Details.png
   AssetGenImage get bookingDetails =>
       const AssetGenImage('assets/images/Booking Details.png');
@@ -135,10 +139,6 @@ class $AssetsImagesGen {
   AssetGenImage get splashScreen =>
       const AssetGenImage('assets/images/Splash Screen.png');
 
-  /// File path: assets/images/Tab Screen.png
-  AssetGenImage get tabScreen =>
-      const AssetGenImage('assets/images/Tab Screen.png');
-
   /// File path: assets/images/adduser.png
   AssetGenImage get adduser => const AssetGenImage('assets/images/adduser.png');
 
@@ -152,11 +152,11 @@ class $AssetsImagesGen {
   /// List of all assets
   List<dynamic> get values => [
         aGitkeep,
+        bgBooking,
         bookingDetails,
         homeBg,
         myBookings,
         splashScreen,
-        tabScreen,
         adduser,
         filter,
         roombooking
@@ -169,11 +169,14 @@ class $AssetsLogoGen {
   /// File path: assets/logo/mekansm.png
   AssetGenImage get mekansm => const AssetGenImage('assets/logo/mekansm.png');
 
+  /// File path: assets/logo/splash .png
+  AssetGenImage get splashPng => const AssetGenImage('assets/logo/splash .png');
+
   /// File path: assets/logo/splash.png
-  AssetGenImage get splash => const AssetGenImage('assets/logo/splash.png');
+  AssetGenImage get splashPng_ => const AssetGenImage('assets/logo/splash.png');
 
   /// List of all assets
-  List<AssetGenImage> get values => [mekansm, splash];
+  List<AssetGenImage> get values => [mekansm, splashPng, splashPng_];
 }
 
 class Assets {

@@ -6,14 +6,17 @@ import { useRouter } from 'next/navigation';
 import {
   Building2,
   CalendarDays,
+  Clock,
   LayoutDashboard,
   LogOut,
   RefreshCw,
   ShieldCheck,
   Users,
 } from 'lucide-react';
+import BookingHistoryPanel from '@/components/BookingHistoryPanel';
 import BookingCalendar from '@/components/BookingCalendar';
 import RoomManagement from '@/components/RoomManagement';
+import SatisfactionWidget from '@/components/SatisfactionWidget';
 import StatCard from '@/components/StatCard';
 import UserManagement from '@/components/UserManagement';
 import {
@@ -27,6 +30,7 @@ import {
   deleteRoom,
   deleteUser,
   getAdminBookings,
+  getFeedbackStats,
   getMe,
   getStats,
   listRooms,
@@ -45,6 +49,7 @@ import {
 const MENU_ITEMS = [
   { key: 'overview', label: 'Overview', description: 'Ringkasan operasional', icon: LayoutDashboard },
   { key: 'bookings', label: 'Booking Calendar', description: 'Kelola booking harian', icon: CalendarDays },
+  { key: 'history', label: 'Riwayat', description: 'Daftar riwayat booking', icon: Clock },
   { key: 'rooms', label: 'Rooms', description: 'Kelola ruangan', icon: Building2 },
   { key: 'users', label: 'User Management', description: 'Atur akun dan role', icon: Users },
 ];
@@ -57,6 +62,7 @@ export default function DashboardPage() {
   const [token, setToken] = useState('');
   const [currentUser, setCurrentUser] = useState(() => getStoredUser());
   const [stats, setStats] = useState({});
+  const [feedbackStats, setFeedbackStats] = useState({});
   const [bookings, setBookings] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
@@ -81,14 +87,18 @@ export default function DashboardPage() {
     async (activeToken) => {
       setDashboardLoading(true);
       setError('');
+
       try {
-        const [statsData, bookingData] = await Promise.all([
+        const [statsData, bookingData, feedbackData] = await Promise.all([
           getStats(activeToken),
           getAdminBookings(activeToken, {
             status: statusFilter || undefined,
           }),
+          getFeedbackStats(activeToken),
         ]);
+
         setStats(statsData || {});
+        setFeedbackStats(feedbackData || {});
         setBookings(Array.isArray(bookingData) ? bookingData : []);
       } catch (loadError) {
         setError(loadError.message || 'Gagal memuat dashboard');
@@ -142,38 +152,45 @@ export default function DashboardPage() {
       }
 
       try {
-        const me = await getMe(activeToken);
-        if (!isAdminRole(me?.role)) {
-          throw new Error('Akun tidak punya akses admin');
+        const profile = await getMe(activeToken);
+        if (ignore) return;
+
+        if (!profile || !isAdminRole(profile.role)) {
+          clearSession();
+          router.replace('/login?denied=1');
+          return;
         }
 
-        if (ignore) return;
-        saveSession(activeToken, me);
+        saveSession(activeToken, profile);
         setToken(activeToken);
-        setCurrentUser(me);
-      } catch {
-        clearSession();
-        router.replace('/login?denied=1');
+        setCurrentUser(profile);
+        await loadStatsAndBookings(activeToken);
+        await loadRooms();
+      } catch (bootstrapError) {
+        if (ignore) return;
+        setError(bootstrapError.message || 'Gagal memverifikasi sesi admin');
+        router.replace('/login');
       } finally {
         if (!ignore) setBootLoading(false);
       }
     }
 
     bootstrap();
+
     return () => {
       ignore = true;
     };
-  }, [router]);
+  }, [loadRooms, loadStatsAndBookings, router]);
 
   useEffect(() => {
-    if (!token) return;
-    loadStatsAndBookings(token);
-  }, [token, statusFilter, loadStatsAndBookings]);
+    if (!token || currentUser?.role !== 'superadmin') return;
 
-  useEffect(() => {
-    if (!token) return;
-    loadRooms();
-  }, [token, loadRooms]);
+    const timer = setTimeout(() => {
+      loadUsers();
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [token, currentUser?.role, userFilters, loadUsers]);
 
   const handleCreateRoom = async (payload) => {
     if (!token) return;
@@ -229,60 +246,33 @@ export default function DashboardPage() {
     }
   };
 
-  useEffect(() => {
-    if (!token || currentUser?.role !== 'superadmin') return;
-
-    const timer = setTimeout(() => {
-      loadUsers();
-    }, 250);
-
-    return () => clearTimeout(timer);
-  }, [token, currentUser?.role, userFilters, loadUsers]);
-
   const statsView = useMemo(() => {
     const bookingStats = stats.bookings || {};
     const roomStats = stats.rooms || {};
+    const feedbackRate = Number(feedbackStats.satisfactionRate || 0);
 
     return {
       totalBookings: bookingStats.total ?? 0,
       pending: bookingStats.pending ?? 0,
       confirmed: bookingStats.confirmed ?? 0,
       rooms: roomStats.total ?? 0,
+      feedbackRate,
+      feedbackSatisfied: feedbackStats.satisfied ?? 0,
+      feedbackUnsatisfied: feedbackStats.unsatisfied ?? 0,
+      feedbackTotal: feedbackStats.total ?? 0,
     };
-  }, [stats]);
-
-  const recentBookings = useMemo(() => {
-    return [...bookings]
-      .sort((a, b) => {
-        const leftDate = Number(b.bookingDate || 0);
-        const rightDate = Number(a.bookingDate || 0);
-        if (leftDate !== rightDate) return leftDate - rightDate;
-        return String(b.checkInTime || '').localeCompare(String(a.checkInTime || ''));
-      })
-      .slice(0, 5);
-  }, [bookings]);
-
-  const formatBookingDate = (booking) => {
-    const value = Number(booking.bookingDate || 0);
-    if (!value) return '-';
-
-    return new Date(value).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const handleLogout = () => {
-    clearSession();
-    router.replace('/login');
-  };
+  }, [stats, feedbackStats]);
 
   const refreshDashboard = async () => {
     if (!token) return;
     setInfo('Data dashboard diperbarui.');
     await loadStatsAndBookings(token);
     await loadRooms();
+  };
+
+  const handleLogout = () => {
+    clearSession();
+    router.replace('/login');
   };
 
   const handleBookingAction = async (action, booking) => {
@@ -428,7 +418,13 @@ export default function DashboardPage() {
               <button
                 key={item.key}
                 type="button"
-                onClick={() => setActiveMenu(item.key)}
+                onClick={() => {
+                  if (item.key === 'history') {
+                    router.push('/dashboard/history');
+                    return;
+                  }
+                  setActiveMenu(item.key);
+                }}
                 className={[
                   'group relative flex items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 text-left transition',
                   active
@@ -467,7 +463,13 @@ export default function DashboardPage() {
                 <button
                   key={item.key}
                   type="button"
-                  onClick={() => setActiveMenu(item.key)}
+                  onClick={() => {
+                    if (item.key === 'history') {
+                      router.push('/dashboard/history');
+                      return;
+                    }
+                    setActiveMenu(item.key);
+                  }}
                   className={[
                     'rounded-full px-3 py-1.5 text-xs font-semibold transition',
                     active ? 'bg-sky-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
@@ -528,6 +530,8 @@ export default function DashboardPage() {
               <StatCard label="Total Rooms" value={statsView.rooms} tone="accent" />
             </div>
 
+            <SatisfactionWidget stats={statsView} />
+
             <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="text-xl font-semibold text-slate-900">Ringkasan Operasional</h2>
@@ -558,40 +562,23 @@ export default function DashboardPage() {
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-xl font-semibold text-slate-900">Riwayat Booking Terbaru</h2>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                    {recentBookings.length} item
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                      {Math.min(bookings.length, 5)} preview
+                    </span>
+                  </div>
                 </div>
 
-                {recentBookings.length === 0 ? (
-                  <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                    Belum ada history booking yang bisa ditampilkan.
-                  </div>
-                ) : (
-                  <div className="mt-4 space-y-3">
-                    {recentBookings.map((booking) => (
-                      <article key={booking.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-slate-900">{booking.roomName || 'Room tanpa nama'}</p>
-                            <p className="text-xs text-slate-600">
-                              {formatBookingDate(booking)} • {booking.checkInTime} - {booking.checkOutTime}
-                            </p>
-                          </div>
-                          <span className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
-                            {booking.status}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-xs text-slate-700">
-                          {booking.userName || 'Unknown User'} • Guests: {booking.numberOfGuests}
-                        </p>
-                        {booking.purpose ? (
-                          <p className="mt-2 line-clamp-2 text-xs text-slate-600">{booking.purpose}</p>
-                        ) : null}
-                      </article>
-                    ))}
-                  </div>
-                )}
+                <div className="mt-4">
+                  <BookingHistoryPanel
+                    bookings={bookings}
+                    showHeader={false}
+                    showFilters={false}
+                    showExport={false}
+                    previewLimit={5}
+                    emptyMessage="Belum ada riwayat booking untuk ditampilkan."
+                  />
+                </div>
               </div>
             </div>
           </section>

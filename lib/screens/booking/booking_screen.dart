@@ -207,56 +207,49 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('Book Room'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.primaryText,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Room info
-            _buildRoomInfoCard(),
-
-            const SizedBox(height: AppSpacing.xl),
-
-            // Booking date
-            _buildBookingDateSection(),
-
-            const SizedBox(height: AppSpacing.lg),
-
-            // Start time
-            _buildStartTimeSection(),
-
-            const SizedBox(height: AppSpacing.lg),
-
-            // Duration options
-            _buildDurationSection(),
-
-            const SizedBox(height: AppSpacing.lg),
-
-            // Guests
-            _buildGuestCountSection(),
-
-            const SizedBox(height: AppSpacing.lg),
-
-            // Booking recipient
-            _buildBookingForSection(),
-
-            const SizedBox(height: AppSpacing.lg),
-
-            // Purpose
-            _buildPurposeSection(),
-
-            const SizedBox(height: AppSpacing.xl),
-
-            // Total summary
-            _buildSummary(),
-          ],
-        ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image(
+              image: Assets.images.bgBooking.provider(),
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned.fill(
+            child: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildRoomInfoCard(),
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildBookingDateSection(),
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildStartTimeSection(),
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildDurationSection(),
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildGuestCountSection(),
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildBookingForSection(),
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildPurposeSection(),
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildSummary(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: _buildBookButton(),
     );

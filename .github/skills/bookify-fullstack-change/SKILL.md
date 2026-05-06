@@ -44,4 +44,4 @@ Use this skill for cross-layer work in Bookify Rooms, especially when a feature 
 - What changed.
 - Which layer changed.
 - Which files need matching updates in the other layer.
-- What was verified.
+-

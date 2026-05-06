@@ -75,7 +75,7 @@ class _RoomsListScreenState extends State<RoomsListScreen>
         ),
         body: const Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryText),
           ),
         ),
       );
@@ -124,7 +124,7 @@ class _RoomsListScreenState extends State<RoomsListScreen>
                 icon: const Icon(Icons.refresh),
                 label: const Text('Refresh'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
+                  backgroundColor: AppColors.primaryText,
                   foregroundColor: Colors.white,
                 ),
               ),
@@ -140,7 +140,7 @@ class _RoomsListScreenState extends State<RoomsListScreen>
           // Background Image - Tab Screen
           Positioned.fill(
             child: Image(
-              image: Assets.images.tabScreen.provider(),
+              image: Assets.images.bgBooking.provider(),
               fit: BoxFit.cover,
             ),
           ),
@@ -214,7 +214,7 @@ class _RoomsListScreenState extends State<RoomsListScreen>
                     labelColor: Colors.white,
                     unselectedLabelColor: Colors.white70,
                     indicator: BoxDecoration(
-                      color: AppColors.primaryRed,
+                      color: Colors.white.withOpacity(0.35),
                       borderRadius: BorderRadius.circular(25),
                     ),
                     indicatorSize: TabBarIndicatorSize.tab,
@@ -296,7 +296,7 @@ class _RoomsListScreenState extends State<RoomsListScreen>
                   end: Alignment.bottomRight,
                   colors: room.isAvailable
                       ? [const Color(0xFF2E7D32), const Color(0xFF1B5E20)]
-                      : [const Color(0xFFB71C1C), const Color(0xFF8B0000)],
+                      : [const Color(0xFF616161), const Color(0xFF424242)],
                 ),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
@@ -456,7 +456,7 @@ class _RoomsListScreenState extends State<RoomsListScreen>
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
+                    backgroundColor: AppColors.primaryText,
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: screenHeight * 0.05),
                     shape: RoundedRectangleBorder(

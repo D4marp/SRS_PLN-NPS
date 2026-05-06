@@ -618,7 +618,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
           body: Container(
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: Assets.images.tabScreen.provider(),
+                image: Assets.images.bgBooking.provider(),
                 fit: BoxFit.cover,
               ),
             ),

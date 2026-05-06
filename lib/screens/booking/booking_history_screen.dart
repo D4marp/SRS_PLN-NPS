@@ -6,6 +6,8 @@ import '../../providers/booking_provider.dart';
 import '../../models/booking_model.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/booking_card.dart';
+import '../../widgets/feedback_modal.dart';
+import '../../widgets/early_checkin_checkout_widget.dart';
 
 class BookingHistoryScreen extends StatefulWidget {
   const BookingHistoryScreen({super.key});
@@ -100,9 +102,9 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
         Container(
           width: double.infinity,
           height: double.infinity,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             image: DecorationImage(
-              image: AssetImage('assets/images/My Bookings.png'),
+              image: Assets.images.bgBooking.provider(),
               fit: BoxFit.cover,
             ),
           ),
@@ -668,10 +670,68 @@ class _ShimmerBoxState extends State<_ShimmerBox>
   }
 }
 
-class _BookingDetailsSheet extends StatelessWidget {
+class _BookingDetailsSheet extends StatefulWidget {
   final BookingModel booking;
 
   const _BookingDetailsSheet({required this.booking});
+
+  @override
+  State<_BookingDetailsSheet> createState() => _BookingDetailsSheetState();
+}
+
+class _BookingDetailsSheetState extends State<_BookingDetailsSheet> {
+  late BookingModel _currentBooking;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentBooking = widget.booking;
+    // Show feedback modal if eligible
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndShowFeedbackModal();
+    });
+  }
+
+  void _checkAndShowFeedbackModal() {
+    if (_currentBooking.shouldShowFeedbackModal) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => FeedbackModal(
+          booking: _currentBooking,
+          onFeedbackSubmitted: _onFeedbackSubmitted,
+        ),
+      );
+    }
+  }
+
+  void _onFeedbackSubmitted() {
+    if (mounted) {
+      // Refresh the booking to get the updated feedback status
+      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+      bookingProvider.getBookingById(_currentBooking.id).then((booking) {
+        if (booking != null && mounted) {
+          setState(() {
+            _currentBooking = booking;
+          });
+        }
+      });
+    }
+  }
+
+  void _onCheckInCheckOutSubmitted() {
+    if (mounted) {
+      // Refresh the booking to get the updated times
+      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+      bookingProvider.getBookingById(_currentBooking.id).then((booking) {
+        if (booking != null && mounted) {
+          setState(() {
+            _currentBooking = booking;
+          });
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -685,7 +745,7 @@ class _BookingDetailsSheet extends StatelessWidget {
       ),
       child: DraggableScrollableSheet(
         initialChildSize: 0.7,
-        maxChildSize: 0.9,
+        maxChildSize: 0.95,
         minChildSize: 0.5,
         expand: false,
         builder: (context, scrollController) {
@@ -731,36 +791,140 @@ class _BookingDetailsSheet extends StatelessWidget {
                       const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                   children: [
                     // Booking ID and Status
-                    _buildDetailRow('Booking ID', booking.id),
-                    _buildDetailRow('Status', booking.statusDisplayName),
+                    _buildDetailRow('Booking ID', _currentBooking.id),
+                    _buildDetailRow('Status', _currentBooking.statusDisplayName),
 
                     const Divider(height: AppSpacing.xl),
 
                     // Room Details
-                    if (booking.roomName != null) ...[
-                      _buildDetailRow('Room', booking.roomName!),
-                      if (booking.roomLocation != null)
-                        _buildDetailRow('Location', booking.roomLocation!),
+                    if (_currentBooking.roomName != null) ...[
+                      _buildDetailRow('Room', _currentBooking.roomName!),
+                      if (_currentBooking.roomLocation != null)
+                        _buildDetailRow('Location', _currentBooking.roomLocation!),
                     ],
 
                     const Divider(height: AppSpacing.xl),
 
                     // Booking Details
                     _buildDetailRow(
-                        'Date', _formatDate(booking.bookingDate)),
+                        'Date', _formatDate(_currentBooking.bookingDate)),
                     _buildDetailRow(
-                        'Start Time', booking.checkInTime),
+                        'Start Time', _currentBooking.checkInTime),
                     _buildDetailRow(
-                        'End Time', booking.checkOutTime),
+                        'End Time', _currentBooking.checkOutTime),
                     _buildDetailRow(
-                        'Duration', _calculateDuration(booking.checkInTime, booking.checkOutTime)),
-                    _buildDetailRow('Number of Guests', '${booking.numberOfGuests} ${booking.numberOfGuests == 1 ? "person" : "people"}'),
-                    if (booking.bookedForName != null && booking.bookedForName!.isNotEmpty)
-                      _buildDetailRow('Booked For', booking.bookedForName!),
-                    if (booking.bookedForCompany != null && booking.bookedForCompany!.isNotEmpty)
-                      _buildDetailRow('Company', booking.bookedForCompany!),
-                    if (booking.purpose != null && booking.purpose!.isNotEmpty)
-                      _buildDetailRow('Purpose', booking.purpose!),
+                        'Duration', _calculateDuration(_currentBooking.checkInTime, _currentBooking.checkOutTime)),
+                    if (_currentBooking.hasActualCheckTimes)
+                      _buildDetailRow('Actual Duration', _currentBooking.actualDurationLabel),
+                    _buildDetailRow('Number of Guests', '${_currentBooking.numberOfGuests} ${_currentBooking.numberOfGuests == 1 ? "person" : "people"}'),
+                    if (_currentBooking.bookedForName != null && _currentBooking.bookedForName!.isNotEmpty)
+                      _buildDetailRow('Untuk', _currentBooking.bookedForName!),
+                    if (_currentBooking.bookedForCompany != null && _currentBooking.bookedForCompany!.isNotEmpty)
+                      _buildDetailRow('Instansi', _currentBooking.bookedForCompany!),
+                    if (_currentBooking.purpose != null && _currentBooking.purpose!.isNotEmpty)
+                      _buildDetailRow('Purpose', _currentBooking.purpose!),
+
+                    const SizedBox(height: AppSpacing.md),
+
+                    // Early Check-in/Check-out Widget (for confirmed/pending bookings)
+                    if (_currentBooking.shouldShowEarlyCheckInCheckOut)
+                      EarlyCheckInCheckOutWidget(
+                        booking: _currentBooking,
+                        onTimesSubmitted: _onCheckInCheckOutSubmitted,
+                      ),
+
+                    // Feedback section (for completed bookings)
+                    if (_currentBooking.status == BookingStatus.completed &&
+                        _currentBooking.hasFeedback) ...[
+                      const Divider(height: AppSpacing.xl),
+                      Text(
+                        'Feedback yang Diberikan',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryText,
+                            ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: AppColors.creamBackground,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.borderColor),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  'Kepuasan: ',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.secondaryText,
+                                      ),
+                                ),
+                                Text(
+                                  _currentBooking.feedbackSatisfaction == 'satisfied'
+                                      ? '😊 Puas'
+                                      : '😞 Kurang Puas',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: _currentBooking.feedbackSatisfaction == 'satisfied'
+                                            ? AppColors.successGreen
+                                            : AppColors.errorRed,
+                                      ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            Text(
+                              'Alasan:',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.secondaryText,
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _currentBooking.feedbackReason ?? 'N/A',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.primaryText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // Actual check-in/check-out display (if exists)
+                    if (_currentBooking.hasActualCheckTimes) ...[
+                      const Divider(height: AppSpacing.xl),
+                      Text(
+                        'Waktu Check-in/Check-out Aktual',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryText,
+                            ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: AppColors.successGreenLight,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.successGreen),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildDetailRow('Check-in Aktual', _currentBooking.actualCheckInTime ?? 'N/A'),
+                            const SizedBox(height: AppSpacing.md),
+                            _buildDetailRow('Check-out Aktual', _currentBooking.actualCheckOutTime ?? 'N/A'),
+                          ],
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: AppSpacing.xl),
                   ],

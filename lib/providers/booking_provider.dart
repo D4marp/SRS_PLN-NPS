@@ -235,6 +235,74 @@ class BookingProvider extends ChangeNotifier {
   DateTime get maxSelectableDate =>
       DateTime.now().add(const Duration(days: 365));
 
+  /// Submit feedback for a completed booking
+  Future<bool> submitFeedback({
+    required String bookingId,
+    required String satisfaction,
+    required String reason,
+  }) async {
+    try {
+      _setLoading(true);
+      _clearError();
+
+      final updatedBooking = await ApiBookingService.submitFeedback(
+        bookingId: bookingId,
+        satisfaction: satisfaction,
+        reason: reason,
+      );
+
+      // Update the booking in the local list
+      final index = _userBookings.indexWhere((b) => b.id == bookingId);
+      if (index != -1) {
+        _userBookings[index] = updatedBooking;
+        _separateBookings();
+      }
+
+      debugPrint('✅ Feedback submitted for booking: $bookingId');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error submitting feedback: $e');
+      _setError(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Submit early check-in/check-out times for a booking
+  Future<bool> submitCheckInCheckOut({
+    required String bookingId,
+    String? actualCheckInTime,
+    String? actualCheckOutTime,
+  }) async {
+    try {
+      _setLoading(true);
+      _clearError();
+
+      final updatedBooking = await ApiBookingService.submitCheckInCheckOut(
+        bookingId: bookingId,
+        actualCheckInTime: actualCheckInTime,
+        actualCheckOutTime: actualCheckOutTime,
+      );
+
+      // Update the booking in the local list
+      final index = _userBookings.indexWhere((b) => b.id == bookingId);
+      if (index != -1) {
+        _userBookings[index] = updatedBooking;
+        _separateBookings();
+      }
+
+      debugPrint('✅ Check-in/Check-out times submitted for booking: $bookingId');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error submitting check-in/check-out: $e');
+      _setError(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   /// Cleanup subscriptions ketika provider di-dispose
   @override
   void dispose() {

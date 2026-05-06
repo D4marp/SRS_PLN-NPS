@@ -212,11 +212,12 @@ export default function BookingCalendar({
       </header>
 
       <div className="space-y-4">
-        <div className="overflow-hidden rounded-2xl border border-slate-200">
-          <div className="grid grid-cols-7 bg-slate-50 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+          <div className="grid grid-cols-7 bg-slate-50 text-center text-[9px] md:text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             {WEEKDAYS.map((day) => (
-              <div key={day} className="border-b border-slate-200 py-2">
-                {day}
+              <div key={day} className="border-b border-slate-200 py-2 px-1">
+                <span className="hidden sm:inline">{day}</span>
+                <span className="sm:hidden">{day.slice(0, 1)}</span>
               </div>
             ))}
           </div>
@@ -240,20 +241,37 @@ export default function BookingCalendar({
                 const items = groupedBookings[cell.key] || [];
                 const pendingCount = items.filter((item) => item.status === 'pending').length;
                 const isActive = cell.key === selectedDateKey;
+                const roomNames = Array.from(new Set(items.map((it) => it.roomName || 'Unnamed')));
+                const moreCount = roomNames.length - 1;
 
                 return (
                   <button
                     key={cell.id}
                     type="button"
                     className={[
-                      'min-h-[84px] border border-slate-100 p-2 text-left transition',
+                      'min-h-[100px] md:min-h-[84px] border border-slate-100 p-2 lg:p-3 text-left transition flex flex-col justify-between',
                       isActive ? 'bg-sky-50 ring-1 ring-sky-300' : 'bg-white hover:bg-slate-50',
                     ].join(' ')}
                     onClick={() => setSelectedDateKey(cell.key)}
                   >
-                    <span className="block text-sm font-semibold text-slate-800">{cell.day}</span>
-                    <small className="block text-xs text-slate-600">{items.length} booking</small>
-                    {pendingCount > 0 && <em className="block text-xs font-medium not-italic text-amber-700">{pendingCount} pending</em>}
+                    <span className="block text-sm md:text-xs lg:text-sm font-semibold text-slate-800">{cell.day}</span>
+                    <div className="mt-1 min-h-0 flex-1 overflow-hidden flex flex-col gap-0.5">
+                      {items.length === 0 ? (
+                        <small className="text-[10px] md:text-xs text-slate-400">—</small>
+                      ) : (
+                        <>
+                          <small className="block text-[10px] md:text-xs text-slate-600 line-clamp-2 leading-tight" title={roomNames.join(', ')}>
+                            {roomNames[0]}
+                          </small>
+                          {moreCount > 0 && (
+                            <small className="text-[10px] md:text-xs text-slate-500 font-medium">+{moreCount} more</small>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    {pendingCount > 0 && (
+                      <em className="block text-[9px] md:text-xs font-medium not-italic text-amber-700 mt-1">{pendingCount} pending</em>
+                    )}
                   </button>
                 );
               })}
@@ -389,10 +407,28 @@ export default function BookingCalendar({
                         </p>
                       ) : null}
                       <p>Guests: {booking.numberOfGuests}</p>
+                      {booking.actualCheckInTime || booking.actualCheckOutTime || booking.actualDurationMinutes != null ? (
+                        <p className="text-xs text-slate-500">
+                          Aktual: {booking.actualCheckInTime || '-'} - {booking.actualCheckOutTime || '-'}
+                          {booking.actualDurationMinutes != null ? ` • ${booking.actualDurationMinutes} menit` : ''}
+                        </p>
+                      ) : null}
                       {booking.purpose ? (
                         <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">{booking.purpose}</p>
                       ) : null}
                     </div>
+
+                    {booking.feedback ? (
+                      <div className="mt-3 space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{booking.feedback.satisfactionLevel === 'satisfied' ? '😊' : '😞'}</span>
+                          <span className="text-xs font-semibold text-amber-900">
+                            {booking.feedback.satisfactionLevel === 'satisfied' ? 'Puas' : 'Kurang Puas'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-900">{booking.feedback.reason}</p>
+                      </div>
+                    ) : null}
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       {booking.status === 'pending' && (

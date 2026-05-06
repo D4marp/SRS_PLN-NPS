@@ -211,9 +211,33 @@ class BookingCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                booking.bookedForCompany != null && booking.bookedForCompany!.isNotEmpty
-                                    ? 'For: ${booking.bookedForName} (${booking.bookedForCompany})'
-                                    : 'For: ${booking.bookedForName}',
+                                'Untuk: ${booking.bookedForName}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      if (booking.bookedForCompany != null && booking.bookedForCompany!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.apartment_outlined,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                'Instansi: ${booking.bookedForCompany}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 13,

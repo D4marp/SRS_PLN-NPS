@@ -20,11 +20,17 @@ body {
   margin: 0;
   font-family: var(--font-body), 'Plus Jakarta Sans', system-ui, sans-serif;
   color: #0f2d4d;
-  background:
-    radial-gradient(circle at 14% 18%, rgba(0, 153, 255, 0.12), transparent 36%),
-    radial-gradient(circle at 82% 10%, rgba(255, 195, 0, 0.1), transparent 32%),
-    radial-gradient(circle at 70% 90%, rgba(0, 57, 107, 0.08), transparent 30%),
-    #f4f9ff;
+  background-image:
+    linear-gradient(rgba(244,249,255,0.75), rgba(244,249,255,0.75)),
+    radial-gradient(circle at 14% 18%, rgba(0, 153, 255, 0.06), transparent 36%),
+    radial-gradient(circle at 82% 10%, rgba(255, 195, 0, 0.04), transparent 32%),
+    radial-gradient(circle at 70% 90%, rgba(0, 57, 107, 0.03), transparent 30%),
+    url('/bg_image.png');
+  background-color: #f4f9ff;
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: cover;
+  background-attachment: fixed;
 }
 
 h1,
