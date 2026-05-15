@@ -7,6 +7,7 @@ import '../../models/room_model.dart';
 import '../../providers/booking_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/gen/assets.gen.dart';
+import '../../utils/app_theme.dart';
 
 class UserBookingScreen extends StatefulWidget {
   final RoomModel room;
@@ -292,7 +293,7 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
             ],
           ),
         ),
-        backgroundColor: Colors.red.shade700,
+        backgroundColor: AppColors.primaryText,
         duration: const Duration(seconds: 5),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
@@ -761,8 +762,8 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
                 width: double.infinity,
                 height: 56,
                 decoration: ShapeDecoration(
-                  color: widget.room.isAvailable && !_isBooking
-                      ? const Color(0xFFEC0303)
+                    color: widget.room.isAvailable && !_isBooking
+                      ? AppColors.primaryText
                       : Colors.grey,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(11),
@@ -979,8 +980,8 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
                       width: 40,
                       height: 40,
                       decoration: isSelected
-                          ? const ShapeDecoration(
-                              color: Color(0xFFEC0303),
+                            ? const ShapeDecoration(
+                              color: AppColors.primaryText,
                               shape: OvalBorder(),
                             )
                           : null,
@@ -1025,11 +1026,11 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: ShapeDecoration(
-          color: isSelected ? const Color(0xFFEC0303) : Colors.transparent,
+          color: isSelected ? AppColors.primaryText : Colors.transparent,
           shape: RoundedRectangleBorder(
             side: BorderSide(
               width: 1.5,
-              color: isSelected ? const Color(0xFFEC0303) : const Color(0xFFBBBBBB),
+              color: isSelected ? AppColors.primaryText : const Color(0xFFBBBBBB),
             ),
             borderRadius: BorderRadius.circular(8),
           ),
@@ -1060,11 +1061,11 @@ class _UserBookingScreenState extends State<UserBookingScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: ShapeDecoration(
-          color: isSelected ? const Color(0xFFEC0303) : Colors.transparent,
+          color: isSelected ? AppColors.primaryText : Colors.transparent,
           shape: RoundedRectangleBorder(
             side: BorderSide(
               width: 1.5,
-              color: isSelected ? const Color(0xFFEC0303) : const Color(0xFFBBBBBB),
+              color: isSelected ? AppColors.primaryText : const Color(0xFFBBBBBB),
             ),
             borderRadius: BorderRadius.circular(8),
           ),

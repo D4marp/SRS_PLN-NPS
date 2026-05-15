@@ -155,8 +155,8 @@ class _RoomsListScreenState extends State<RoomsListScreen>
                     horizontal: MediaQuery.of(context).size.width * 0.015,
                     vertical: MediaQuery.of(context).size.height * 0.02,
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(20),
                       bottomRight: Radius.circular(20),

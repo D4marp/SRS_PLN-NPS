@@ -329,7 +329,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
             ],
           ),
         ),
-        backgroundColor: Colors.red.shade700,
+        backgroundColor: AppColors.primaryText,
         duration: const Duration(seconds: 5),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
@@ -359,7 +359,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(
-            color: (minutes != 0 && isSelected) ? AppColors.primaryRed : Colors.transparent,
+            color: (minutes != 0 && isSelected) ? AppColors.primaryText : Colors.transparent,
             borderRadius: BorderRadius.circular(11),
             border: Border.all(
               color: Colors.white.withOpacity(0.3),
@@ -508,7 +508,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                               color: days[i + j] == _selectedDate.day &&
                                       currentMonth == _selectedDate.month &&
                                       currentYear == _selectedDate.year
-                                  ? AppColors.primaryRed
+                                  ? AppColors.primaryText
                                   : Colors.transparent,
                               shape: BoxShape.circle,
                             ),
@@ -583,7 +583,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                   ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryRed,
+                      backgroundColor: AppColors.primaryText,
                       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                     ),
                     child: const Text('Go Back'),
@@ -823,7 +823,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                                           style: TextStyle(
                                             fontSize: 28,
                                             fontWeight: FontWeight.w500,
-                                            color: AppColors.primaryRed,
+                                            color: AppColors.primaryText,
                                             fontFamily: 'Plus Jakarta Sans',
                                           ),
                                         ),
@@ -977,7 +977,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                         child: ElevatedButton(
                           onPressed: _isBooking ? null : _handleBooking,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryRed,
+                            backgroundColor: AppColors.primaryText,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),

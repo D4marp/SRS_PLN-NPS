@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/booking_model.dart';
 import '../core/gen/assets.gen.dart';
+import '../utils/app_theme.dart';
 
 class BookingCard extends StatelessWidget {
   final BookingModel booking;
@@ -24,7 +25,7 @@ class BookingCard extends StatelessWidget {
           shape: RoundedRectangleBorder(
             side: const BorderSide(
               width: 1.5,
-              color: Color(0xFFAF0406),
+              color: Colors.white24,
             ),
             borderRadius: BorderRadius.circular(12),
           ),
@@ -53,7 +54,7 @@ class BookingCard extends StatelessWidget {
                             child: const Center(
                               child: CircularProgressIndicator(
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  Color(0xFFEC0303),
+                                    Colors.white70,
                                 ),
                               ),
                             ),
@@ -333,7 +334,7 @@ class BookingCard extends StatelessWidget {
                       child: const Text(
                         'Cancel booking',
                         style: TextStyle(
-                          color: Color(0xFFEC0303),
+                          color: AppColors.primaryText,
                           fontSize: 14,
                           fontFamily: 'Plus Jakarta Sans',
                           fontWeight: FontWeight.w600,
@@ -362,15 +363,15 @@ class BookingCard extends StatelessWidget {
   Color _getStatusColor() {
     switch (booking.status) {
       case BookingStatus.confirmed:
-        return const Color(0xFF04B04C); // Green
+        return AppColors.successGreen;
       case BookingStatus.completed:
-        return const Color(0xFFEC0303); // Red
+        return AppColors.secondaryBlue;
       case BookingStatus.cancelled:
-        return const Color(0xFF939393); // Gray
+        return AppColors.borderColorDark;
       case BookingStatus.rejected:
-        return const Color(0xFFB71C1C); // Dark red
+        return AppColors.secondaryText;
       case BookingStatus.pending:
-        return const Color(0xFFFF9800); // Orange
+        return AppColors.warningYellow;
     }
   }
 }

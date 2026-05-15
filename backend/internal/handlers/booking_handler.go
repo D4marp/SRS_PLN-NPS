@@ -150,7 +150,7 @@ func (h *BookingHandler) GetBooking(c *gin.Context) {
 		return
 	}
 
-	if role != "admin" && role != "superadmin" && b.UserID != currentUserID {
+	if role != "admin" && role != "superadmin" && role != "booking" && b.UserID != currentUserID {
 		utils.Error(c, http.StatusForbidden, "access denied")
 		return
 	}
@@ -430,7 +430,8 @@ func (h *BookingHandler) UpdateCheckInCheckOut(c *gin.Context) {
 	}
 
 	isAdmin := role == "admin" || role == "superadmin"
-	if !isAdmin && ownerID != currentUserID {
+	isBookingRole := role == "booking" // kiosk operator can check-in any booking
+	if !isAdmin && !isBookingRole && ownerID != currentUserID {
 		utils.Error(c, http.StatusForbidden, "access denied")
 		return
 	}

@@ -132,16 +132,11 @@ class _EarlyCheckInCheckOutWidgetState extends State<EarlyCheckInCheckOutWidget>
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Waktu check-in/check-out berhasil disimpan'),
-            backgroundColor: AppColors.successGreen,
-          ),
-        );
         widget.onTimesSubmitted();
         setState(() {
           _isExpanded = false;
         });
+        _showSatisfactionSurvey();
       }
     } catch (e) {
       if (mounted) {
@@ -156,6 +151,274 @@ class _EarlyCheckInCheckOutWidgetState extends State<EarlyCheckInCheckOutWidget>
         });
       }
     }
+  }
+
+  static const _kComplaintTags = [
+    'AC mati',
+    'Proyektor tidak berfungsi',
+    'Fasilitas tidak lengkap',
+    'Ruangan kotor',
+    'Koneksi internet buruk',
+    'Kursi/meja kurang',
+    'Kebisingan',
+    'Lainnya',
+  ];
+
+  void _showSatisfactionSurvey() {
+    String? selectedSatisfaction;
+    final TextEditingController reasonController = TextEditingController();
+    final List<String> selectedTags = [];
+    bool isSubmittingFeedback = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final isUnsatisfied = selectedSatisfaction == 'unsatisfied';
+            final canSubmit = selectedSatisfaction != null &&
+                (selectedTags.isNotEmpty ||
+                    reasonController.text.trim().length >= 10);
+
+            String buildReason() {
+              final parts = <String>[];
+              if (selectedTags.isNotEmpty) parts.add(selectedTags.join(', '));
+              final text = reasonController.text.trim();
+              if (text.isNotEmpty) parts.add(text);
+              return parts.join(' — ');
+            }
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Bagaimana kepuasan Anda?',
+                    style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryText,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Ceritakan pengalaman Anda menggunakan ruangan ini',
+                    style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                          color: AppColors.secondaryText,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildEmojiChoice(
+                        ctx: ctx,
+                        emoji: '😊',
+                        label: 'Puas',
+                        value: 'satisfied',
+                        selected: selectedSatisfaction,
+                        color: AppColors.successGreen,
+                        onTap: () => setSheetState(() {
+                          selectedSatisfaction = 'satisfied';
+                          selectedTags.clear();
+                        }),
+                      ),
+                      _buildEmojiChoice(
+                        ctx: ctx,
+                        emoji: '😞',
+                        label: 'Tidak Puas',
+                        value: 'unsatisfied',
+                        selected: selectedSatisfaction,
+                        color: Colors.redAccent,
+                        onTap: () => setSheetState(() => selectedSatisfaction = 'unsatisfied'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  // Complaint tags (only for unsatisfied)
+                  if (isUnsatisfied) ...[
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Kendala yang dialami:',
+                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                              color: AppColors.primaryText,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _kComplaintTags.map((tag) {
+                        final selected = selectedTags.contains(tag);
+                        return FilterChip(
+                          label: Text(tag, style: const TextStyle(fontSize: 12)),
+                          selected: selected,
+                          onSelected: (val) => setSheetState(() {
+                            if (val) {
+                              selectedTags.add(tag);
+                            } else {
+                              selectedTags.remove(tag);
+                            }
+                          }),
+                          selectedColor: Colors.red.shade50,
+                          checkmarkColor: Colors.redAccent,
+                          labelStyle: TextStyle(
+                            color: selected ? Colors.redAccent : AppColors.primaryText,
+                            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                          side: BorderSide(
+                            color: selected ? Colors.redAccent : AppColors.borderColor,
+                            width: selected ? 1.5 : 1,
+                          ),
+                          backgroundColor: AppColors.creamBackground,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  TextField(
+                    controller: reasonController,
+                    maxLines: 3,
+                    onChanged: (_) => setSheetState(() {}),
+                    decoration: InputDecoration(
+                      hintText: isUnsatisfied
+                          ? 'Catatan tambahan (opsional)...'
+                          : 'Ceritakan lebih lanjut (opsional)...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.all(12),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: !canSubmit || isSubmittingFeedback
+                          ? null
+                          : () async {
+                              setSheetState(() => isSubmittingFeedback = true);
+                              try {
+                                await ApiBookingService.submitFeedback(
+                                  bookingId: widget.booking.id,
+                                  satisfaction: selectedSatisfaction!,
+                                  reason: buildReason(),
+                                );
+                                if (ctx.mounted) Navigator.of(ctx).pop();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Terima kasih atas masukan Anda!'),
+                                      backgroundColor: AppColors.successGreen,
+                                    ),
+                                  );
+                                }
+                              } catch (_) {
+                                setSheetState(() => isSubmittingFeedback = false);
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryText,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: isSubmittingFeedback
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text(
+                              'Kirim',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: Text(
+                      'Lewati',
+                      style: TextStyle(color: AppColors.secondaryText),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildEmojiChoice({
+    required BuildContext ctx,
+    required String emoji,
+    required String label,
+    required String value,
+    required String? selected,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final isSelected = selected == value;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.12) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 40)),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: isSelected ? color : AppColors.secondaryText,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _resetTimes() {
@@ -193,7 +456,7 @@ class _EarlyCheckInCheckOutWidgetState extends State<EarlyCheckInCheckOutWidget>
                 children: [
                   const Icon(
                     Icons.access_time,
-                    color: AppColors.primaryRed,
+                    color: AppColors.primaryText,
                     size: 24,
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -298,13 +561,13 @@ class _EarlyCheckInCheckOutWidgetState extends State<EarlyCheckInCheckOutWidget>
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.sm),
                       decoration: BoxDecoration(
-                        color: AppColors.errorRedLight,
+                        color: AppColors.warningYellowLight,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         _errorMessage!,
                         style: const TextStyle(
-                          color: AppColors.errorRed,
+                          color: AppColors.warningYellow,
                           fontSize: 12,
                         ),
                       ),
@@ -330,7 +593,7 @@ class _EarlyCheckInCheckOutWidgetState extends State<EarlyCheckInCheckOutWidget>
                               ? _submitTimes
                               : null,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryRed,
+                            backgroundColor: AppColors.secondaryBlue,
                             disabledBackgroundColor: AppColors.borderColor,
                           ),
                           child: _isLoading
@@ -387,7 +650,7 @@ class _EarlyCheckInCheckOutWidgetState extends State<EarlyCheckInCheckOutWidget>
             ),
             decoration: BoxDecoration(
               border: Border.all(
-                color: time != null ? AppColors.primaryRed : AppColors.borderColor,
+                color: time != null ? AppColors.secondaryBlue : AppColors.borderColor,
                 width: time != null ? 2 : 1,
               ),
               borderRadius: BorderRadius.circular(8),
@@ -407,7 +670,7 @@ class _EarlyCheckInCheckOutWidgetState extends State<EarlyCheckInCheckOutWidget>
                 ),
                 const Icon(
                   Icons.schedule,
-                  color: AppColors.primaryRed,
+                  color: AppColors.secondaryText,
                   size: 20,
                 ),
               ],

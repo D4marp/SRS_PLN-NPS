@@ -10,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
 import '../../core/gen/assets.gen.dart';
 import '../booking/booking_form_screen.dart';
+import '../../services/api_booking_service.dart';
 
 // Event-driven data class untuk booking updates
 class BookingUpdateEvent {
@@ -126,6 +127,22 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     final months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     return '${days[time.weekday - 1]}, ${time.day} ${months[time.month - 1]} ${time.year}';
   }
+
+  DateTime? _parseTimeOnDate(DateTime date, String? time) {
+    if (time == null || time.isEmpty) {
+      return null;
+    }
+    final parts = time.split(':');
+    if (parts.length < 2) {
+      return null;
+    }
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) {
+      return null;
+    }
+    return DateTime(date.year, date.month, date.day, hour, minute);
+  }
   
   // Event-driven method: dipanggil hanya saat booking data berubah
   void _onBookingDataChanged(List<BookingModel> bookings) {
@@ -176,7 +193,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryRed,
+                        backgroundColor: AppColors.secondaryBlue,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 40,
@@ -209,7 +226,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                 // Background Image
                 Positioned.fill(
                   child: Image(
-                    image: Assets.images.myBookings.provider(),
+                    image: Assets.images.bgBooking.provider(),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -262,7 +279,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                                 child: Icon(
                                   Icons.meeting_room,
                                   size: screenWidth * 0.06,
-                                  color: Colors.white.withOpacity(0.5),
+                                  color: AppColors.secondaryText.withOpacity(0.7),
                                 ),
                               ),
                             );
@@ -277,7 +294,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                                       ? loadingProgress.cumulativeBytesLoaded /
                                           loadingProgress.expectedTotalBytes!
                                       : null,
-                                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.secondaryText),
                                 ),
                               ),
                             );
@@ -289,7 +306,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                             child: Icon(
                               Icons.meeting_room,
                               size: screenWidth * 0.06,
-                              color: Colors.white.withOpacity(0.5),
+                              color: AppColors.secondaryText.withOpacity(0.7),
                             ),
                           ),
                           ),
@@ -301,7 +318,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                   Text(
                     widget.room.name,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.primaryText,
                       fontSize: screenWidth * 0.03,
                       fontFamily: 'Plus Jakarta Sans',
                       fontWeight: FontWeight.w700,
@@ -317,7 +334,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                   children: [
                     Icon(
                       Icons.location_on,
-                      color: Colors.white,
+                      color: AppColors.secondaryText,
                       size: screenWidth * 0.017,
                     ),
                     SizedBox(width: screenWidth * 0.006),
@@ -325,7 +342,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                       child: Text(
                         '${widget.room.location}, ${widget.room.city}',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.secondaryText,
                           fontSize: screenWidth * 0.0125,
                           fontFamily: 'Plus Jakarta Sans',
                           fontWeight: FontWeight.w600,
@@ -343,7 +360,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                   Text(
                     'Capacity:',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.primaryText,
                       fontSize: screenWidth * 0.0125,
                       fontFamily: 'Plus Jakarta Sans',
                       fontWeight: FontWeight.w600,
@@ -389,7 +406,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                   Text(
                     'Facility:',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.primaryText,
                       fontSize: screenWidth * 0.0125,
                       fontFamily: 'Plus Jakarta Sans',
                       fontWeight: FontWeight.w600,
@@ -422,7 +439,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
             child: Container(
               padding: EdgeInsets.all(screenWidth * 0.026),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white, width: 2),
+                border: Border.all(color: AppColors.borderColorDark, width: 2),
                 borderRadius: BorderRadius.circular(42),
               ),
               child: Column(
@@ -433,7 +450,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                       // Clock Icon
                       Icon(
                         Icons.access_time,
-                        color: Colors.white,
+                        color: AppColors.primaryText,
                         size: screenWidth * 0.029,
                       ),
                       
@@ -450,7 +467,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                                 Text(
                                   _getCurrentTimeString(currentTime),
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: AppColors.primaryText,
                                     fontSize: screenWidth * 0.03,
                                     fontFamily: 'Plus Jakarta Sans',
                                     fontWeight: FontWeight.w700,
@@ -459,7 +476,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                                 Text(
                                   _getFormattedDate(currentTime),
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: AppColors.secondaryText,
                                     fontSize: screenWidth * 0.0125,
                                     fontFamily: 'Plus Jakarta Sans',
                                     fontWeight: FontWeight.w600,
@@ -478,7 +495,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                   
                   SizedBox(height: screenHeight * 0.03),
                   
-                  Divider(color: Colors.white, thickness: 2),
+                  Divider(color: AppColors.borderColorDark, thickness: 2),
                   
                   SizedBox(height: screenHeight * 0.02),
                   
@@ -488,7 +505,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                     child: Text(
                       'Booked Schedule',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.primaryText,
                         fontSize: screenWidth * 0.0125,
                         fontFamily: 'Plus Jakarta Sans',
                         fontWeight: FontWeight.w700,
@@ -573,35 +590,43 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                 debugPrint('   Check-out Time: ${booking.checkOutTime}');
                 
                 try {
-                  final timeParts = booking.checkInTime.split(':');
-                  final endTimeParts = booking.checkOutTime.split(':');
-                  
-                  final bookingStart = DateTime(
-                    booking.bookingDate.year,
-                    booking.bookingDate.month,
-                    booking.bookingDate.day,
-                    int.parse(timeParts[0]),
-                    int.parse(timeParts[1]),
+                  final bookingStart = _parseTimeOnDate(
+                    booking.bookingDate,
+                    booking.checkInTime,
                   );
-                  final bookingEnd = DateTime(
-                    booking.bookingDate.year,
-                    booking.bookingDate.month,
-                    booking.bookingDate.day,
-                    int.parse(endTimeParts[0]),
-                    int.parse(endTimeParts[1]),
+                  final bookingEnd = _parseTimeOnDate(
+                    booking.bookingDate,
+                    booking.checkOutTime,
                   );
+                  final actualStart = _parseTimeOnDate(
+                    booking.bookingDate,
+                    booking.actualCheckInTime,
+                  );
+                  final actualEnd = _parseTimeOnDate(
+                    booking.bookingDate,
+                    booking.actualCheckOutTime,
+                  );
+
+                  if (bookingStart == null || bookingEnd == null) {
+                    debugPrint('   ❌ Invalid scheduled times');
+                    continue;
+                  }
                   
                   debugPrint('   Parsed Start: $bookingStart');
                   debugPrint('   Parsed End: $bookingEnd');
                   debugPrint('   Now: $currentTime');
-                  
-                  // Check all conditions
-                  bool isAfterStart = currentTime.isAfter(bookingStart);
-                  bool isBeforeEnd = currentTime.isBefore(bookingEnd);
-                  bool isOngoing = isAfterStart && isBeforeEnd;
-                  
-                  debugPrint('   Is After Start: $isAfterStart');
-                  debugPrint('   Is Before End: $isBeforeEnd');
+
+                    final effectiveStart = actualStart;
+                    final effectiveEnd = actualEnd ?? bookingEnd;
+
+                    final isAfterStart =
+                      effectiveStart != null && currentTime.isAfter(effectiveStart);
+                    final isBeforeEnd = currentTime.isBefore(effectiveEnd);
+                    // Only occupied after actual check-in
+                    final isOngoing = isAfterStart && isBeforeEnd;
+
+                    debugPrint('   Is After Start: $isAfterStart');
+                    debugPrint('   Is Before End: $isBeforeEnd');
                   debugPrint('   Is Ongoing: $isOngoing');
                   
                   if (isOngoing) {
@@ -636,11 +661,11 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
               decoration: BoxDecoration(
                 color: isAvailable 
                     ? const Color(0xFFE3FFDF)
-                    : const Color(0xFFFFDFDF),
+                    : AppColors.warningYellowLight,
                 border: Border.all(
                   color: isAvailable
                       ? const Color(0xFF16BC00)
-                      : const Color(0xFFEC0303),
+                      : AppColors.warningYellow,
                   width: 3,
                 ),
                 borderRadius: BorderRadius.circular(16),
@@ -654,7 +679,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                         : Icons.cancel,
                     color: isAvailable
                         ? const Color(0xFF16BC00)
-                        : const Color(0xFFEC0303),
+                      : AppColors.warningYellow,
                     size: screenWidth * 0.025,
                   ),
                   SizedBox(width: screenWidth * 0.006),
@@ -688,7 +713,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.secondaryText),
             ),
           );
         }
@@ -698,7 +723,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
             child: Text(
               'Error loading schedule',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.secondaryText,
                 fontSize: screenWidth * 0.012,
               ),
             ),
@@ -729,7 +754,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                         child: Text(
                           'No bookings for today',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
+                            color: AppColors.secondaryText,
                             fontSize: screenWidth * 0.012,
                             fontFamily: 'Plus Jakarta Sans',
                           ),
@@ -746,45 +771,87 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                           Color borderColor;
                           Color statusBgColor;
                           String statusText;
+                          Color statusTextColor;
                           
-                          final bookingStart = DateTime(
-                            booking.bookingDate.year,
-                            booking.bookingDate.month,
-                            booking.bookingDate.day,
-                            int.parse(booking.checkInTime.split(':')[0]),
-                            int.parse(booking.checkInTime.split(':')[1]),
+                          final bookingStart = _parseTimeOnDate(
+                            booking.bookingDate,
+                            booking.checkInTime,
                           );
-                          final bookingEnd = DateTime(
-                            booking.bookingDate.year,
-                            booking.bookingDate.month,
-                            booking.bookingDate.day,
-                            int.parse(booking.checkOutTime.split(':')[0]),
-                            int.parse(booking.checkOutTime.split(':')[1]),
+                          final bookingEnd = _parseTimeOnDate(
+                            booking.bookingDate,
+                            booking.checkOutTime,
                           );
-                          
-                          if (currentTime.isBefore(bookingStart)) {
+                          final actualStart = _parseTimeOnDate(
+                            booking.bookingDate,
+                            booking.actualCheckInTime,
+                          );
+                          final actualEnd = _parseTimeOnDate(
+                            booking.bookingDate,
+                            booking.actualCheckOutTime,
+                          );
+
+                          if (bookingStart == null || bookingEnd == null) {
+                            borderColor = AppColors.secondaryText;
+                            statusBgColor = AppColors.borderColorDark;
+                            statusText = 'Invalid Time';
+                            statusTextColor = AppColors.primaryText;
+                          } else if (actualStart != null) {
+                            final effectiveEnd = actualEnd ?? bookingEnd;
+
+                            if (actualEnd != null && currentTime.isAfter(actualEnd)) {
+                              // Completed after check-out
+                              borderColor = AppColors.warningYellow;
+                              statusBgColor = AppColors.warningYellow;
+                              statusText = 'Completed';
+                              statusTextColor = Colors.black;
+                            } else if (currentTime.isAfter(actualStart) &&
+                                currentTime.isBefore(effectiveEnd)) {
+                              // Ongoing only after check-in
+                              borderColor = const Color(0xFFF2C338);
+                              statusBgColor = const Color(0xFFFFBF00);
+                              statusText = 'Ongoing';
+                              statusTextColor = Colors.black;
+                            } else if (currentTime.isBefore(actualStart)) {
+                              // Upcoming (check-in set in the future)
+                              borderColor = const Color(0xFF16BC00);
+                              statusBgColor = const Color(0xFF129E00);
+                              statusText = 'Upcoming';
+                              statusTextColor = Colors.white;
+                            } else {
+                              // Past the scheduled window without check-out
+                              borderColor = AppColors.warningYellow;
+                              statusBgColor = AppColors.warningYellow;
+                              statusText = 'Completed';
+                              statusTextColor = Colors.black;
+                            }
+                          } else if (currentTime.isBefore(bookingStart)) {
                             // Upcoming
                             borderColor = const Color(0xFF16BC00);
                             statusBgColor = const Color(0xFF129E00);
                             statusText = 'Upcoming';
+                            statusTextColor = Colors.white;
                           } else if (currentTime.isAfter(bookingEnd)) {
-                            // Completed
-                            borderColor = const Color(0xFFEC0303);
-                            statusBgColor = const Color(0xFFEC0303);
-                            statusText = 'Completed';
+                            // No check-in
+                            borderColor = AppColors.secondaryText;
+                            statusBgColor = AppColors.borderColorDark;
+                            statusText = 'No Check-in';
+                            statusTextColor = AppColors.primaryText;
                           } else {
-                            // Ongoing
-                            borderColor = const Color(0xFFF2C338);
-                            statusBgColor = const Color(0xFFFFBF00);
-                            statusText = 'Ongoing';
+                            // Awaiting check-in
+                            borderColor = AppColors.secondaryBlue;
+                            statusBgColor = AppColors.secondaryBlue;
+                            statusText = 'Awaiting Check-in';
+                            statusTextColor = Colors.white;
                           }
                           
+                          final isAwaitingCheckIn = statusText == 'Awaiting Check-in';
+
                           return Container(
                             margin: EdgeInsets.only(bottom: screenHeight * 0.02),
                             padding: EdgeInsets.all(screenWidth * 0.012),
                             decoration: BoxDecoration(
-                              color: const Color(0xBF170F0F),
-                              border: Border.all(color: Colors.white),
+                              color: Colors.white.withOpacity(0.9),
+                              border: Border.all(color: AppColors.borderColorDark),
                               borderRadius: BorderRadius.circular(11),
                             ),
                             child: Row(
@@ -792,65 +859,124 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                                 // Left border indicator
                                 Container(
                                   width: 3,
-                                  height: screenHeight * 0.06,
+                                  height: screenHeight * 0.11,
                                   decoration: BoxDecoration(
                                     color: borderColor,
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                 ),
-                                
+
                                 SizedBox(width: screenWidth * 0.012),
-                                
+
                                 // Booking Info
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
+                                      // Time range
                                       Text(
-                                        '${booking.checkInTime}-${booking.checkOutTime}',
+                                        '${booking.checkInTime} - ${booking.checkOutTime}',
                                         style: TextStyle(
-                                          color: Colors.white,
+                                          color: AppColors.primaryText,
                                           fontSize: screenWidth * 0.0112,
                                           fontFamily: 'Plus Jakarta Sans',
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
-                                      SizedBox(height: screenHeight * 0.005),
+                                      SizedBox(height: screenHeight * 0.004),
+                                      // Booker name
                                       Text(
-                                        'Booking ID #${booking.id.substring(0, 8).toUpperCase()} | Booked by ${booking.userName ?? "Unknown"}',
+                                        booking.userName ?? 'Unknown',
                                         style: TextStyle(
-                                          color: const Color(0xFFBCBCBC),
-                                          fontSize: screenWidth * 0.0087,
+                                          color: AppColors.primaryText,
+                                          fontSize: screenWidth * 0.0095,
                                           fontFamily: 'Plus Jakarta Sans',
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
+                                      // For: bookedForName · company
+                                      if (booking.bookedForName != null && booking.bookedForName!.isNotEmpty) ...[
+                                        SizedBox(height: screenHeight * 0.002),
+                                        Text(
+                                          'For: ${booking.bookedForName}${booking.bookedForCompany != null && booking.bookedForCompany!.isNotEmpty ? ' · ${booking.bookedForCompany}' : ''}',
+                                          style: TextStyle(
+                                            color: AppColors.secondaryText,
+                                            fontSize: screenWidth * 0.0082,
+                                            fontFamily: 'Plus Jakarta Sans',
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                      // Guests & purpose
+                                      SizedBox(height: screenHeight * 0.002),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.group, size: screenWidth * 0.011, color: AppColors.secondaryText),
+                                          SizedBox(width: screenWidth * 0.003),
+                                          Text(
+                                            '${booking.numberOfGuests} tamu',
+                                            style: TextStyle(
+                                              color: AppColors.secondaryText,
+                                              fontSize: screenWidth * 0.0082,
+                                              fontFamily: 'Plus Jakarta Sans',
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          if (booking.purpose != null && booking.purpose!.isNotEmpty) ...[
+                                            SizedBox(width: screenWidth * 0.008),
+                                            Icon(Icons.info_outline, size: screenWidth * 0.011, color: AppColors.secondaryText),
+                                            SizedBox(width: screenWidth * 0.003),
+                                            Expanded(
+                                              child: Text(
+                                                booking.purpose!,
+                                                style: TextStyle(
+                                                  color: AppColors.secondaryText,
+                                                  fontSize: screenWidth * 0.0082,
+                                                  fontFamily: 'Plus Jakarta Sans',
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ),
-                                
-                                // Status Badge
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: screenWidth * 0.0062,
-                                    vertical: screenHeight * 0.005,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: statusBgColor,
-                                    borderRadius: BorderRadius.circular(37),
-                                  ),
-                                  child: Text(
-                                    statusText,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: screenWidth * 0.0087,
-                                      fontFamily: 'Plus Jakarta Sans',
-                                      fontWeight: FontWeight.w500,
+
+                                // Status Badge or Check-In Button
+                                if (isAwaitingCheckIn)
+                                  _CheckInButton(
+                                    bookingId: booking.id,
+                                    screenWidth: screenWidth,
+                                    screenHeight: screenHeight,
+                                  )
+                                else
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: screenWidth * 0.0062,
+                                      vertical: screenHeight * 0.005,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: statusBgColor,
+                                      borderRadius: BorderRadius.circular(37),
+                                    ),
+                                    child: Text(
+                                      statusText,
+                                      style: TextStyle(
+                                        color: statusTextColor,
+                                        fontSize: screenWidth * 0.0087,
+                                        fontFamily: 'Plus Jakarta Sans',
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
-                                ),
                               ],
                             ),
                           );
@@ -885,6 +1011,104 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         fullscreenDialog: true,
         builder: (context) => BookingFormScreen(
           room: widget.room,
+        ),
+      ),
+    );
+  }
+}
+
+class _CheckInButton extends StatefulWidget {
+  final String bookingId;
+  final double screenWidth;
+  final double screenHeight;
+
+  const _CheckInButton({
+    required this.bookingId,
+    required this.screenWidth,
+    required this.screenHeight,
+  });
+
+  @override
+  State<_CheckInButton> createState() => _CheckInButtonState();
+}
+
+class _CheckInButtonState extends State<_CheckInButton> {
+  bool _isLoading = false;
+
+  Future<void> _checkIn() async {
+    setState(() => _isLoading = true);
+    try {
+      final now = DateTime.now();
+      final timeStr =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      await ApiBookingService.submitCheckInCheckOut(
+        bookingId: widget.bookingId,
+        actualCheckInTime: timeStr,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Check-in berhasil pukul $timeStr'),
+            backgroundColor: const Color(0xFF16BC00),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Check-in gagal: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return SizedBox(
+        width: widget.screenWidth * 0.025,
+        height: widget.screenWidth * 0.025,
+        child: const CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.secondaryBlue),
+        ),
+      );
+    }
+    return GestureDetector(
+      onTap: _checkIn,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: widget.screenWidth * 0.0062,
+          vertical: widget.screenHeight * 0.005,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.secondaryBlue,
+          borderRadius: BorderRadius.circular(37),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.login,
+              color: Colors.white,
+              size: widget.screenWidth * 0.013,
+            ),
+            SizedBox(width: widget.screenWidth * 0.004),
+            Text(
+              'Check In',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: widget.screenWidth * 0.0087,
+                fontFamily: 'Plus Jakarta Sans',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );

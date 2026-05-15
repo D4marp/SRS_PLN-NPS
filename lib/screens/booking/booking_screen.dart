@@ -56,7 +56,7 @@ class _BookingScreenState extends State<BookingScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select booking date'),
-          backgroundColor: AppColors.errorRed,
+          backgroundColor: AppColors.primaryText,
         ),
       );
       return;
@@ -108,7 +108,7 @@ class _BookingScreenState extends State<BookingScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Booking failed: $e'),
-            backgroundColor: AppColors.errorRed,
+            backgroundColor: AppColors.primaryText,
           ),
         );
       }
@@ -314,7 +314,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 Text(
                   widget.room.capacityInfo,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.primaryRed,
+                        color: AppColors.primaryText,
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -375,7 +375,7 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today, color: AppColors.primaryRed, size: 20),
+                  const Icon(Icons.calendar_today, color: AppColors.primaryText, size: 20),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
                     _bookingDate != null
@@ -439,7 +439,7 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.schedule, color: AppColors.primaryRed, size: 20),
+                  const Icon(Icons.schedule, color: AppColors.primaryText, size: 20),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
                     '${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}',
@@ -497,12 +497,12 @@ class _BookingScreenState extends State<BookingScreen> {
             decoration: BoxDecoration(
               border: Border.all(
                 color: _durationMinutes > 90
-                    ? AppColors.primaryRed
+                    ? AppColors.primaryText
                     : Colors.grey.shade300,
               ),
               borderRadius: BorderRadius.circular(8),
               color: _durationMinutes > 90
-                  ? AppColors.primaryRed.withOpacity(0.05)
+                  ? AppColors.primaryText.withOpacity(0.05)
                   : Colors.white,
             ),
             child: Column(
@@ -553,10 +553,10 @@ class _BookingScreenState extends State<BookingScreen> {
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: AppColors.primaryRed.withOpacity(0.1),
+              color: AppColors.primaryText.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: AppColors.primaryRed.withOpacity(0.3),
+                color: AppColors.primaryText.withOpacity(0.3),
               ),
             ),
             child: Row(
@@ -579,7 +579,7 @@ class _BookingScreenState extends State<BookingScreen> {
                     ),
                   ],
                 ),
-                const Icon(Icons.arrow_forward, color: AppColors.primaryRed),
+                const Icon(Icons.arrow_forward, color: AppColors.primaryText),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -620,9 +620,9 @@ class _BookingScreenState extends State<BookingScreen> {
           vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryRed : Colors.white,
+          color: isSelected ? AppColors.primaryText : Colors.white,
           border: Border.all(
-            color: AppColors.primaryRed,
+            color: AppColors.primaryText,
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
@@ -630,7 +630,7 @@ class _BookingScreenState extends State<BookingScreen> {
         child: Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: isSelected ? Colors.white : AppColors.primaryRed,
+                color: isSelected ? Colors.white : AppColors.primaryText,
                 fontWeight: FontWeight.w600,
               ),
         ),
@@ -682,7 +682,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 icon: Icon(
                   Icons.remove_circle_outline,
                   color: _guestCount > 1
-                      ? AppColors.primaryRed
+                      ? AppColors.primaryText
                       : Colors.grey.shade300,
                 ),
               ),
@@ -699,7 +699,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 icon: Icon(
                   Icons.add_circle_outline,
                   color: _guestCount < widget.room.maxGuests
-                      ? AppColors.primaryRed
+                      ? AppColors.primaryText
                       : Colors.grey.shade300,
                 ),
               ),
@@ -758,10 +758,10 @@ class _BookingScreenState extends State<BookingScreen> {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.primaryRed.withOpacity(0.05),
+        color: AppColors.primaryText.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primaryRed.withOpacity(0.2),
+          color: AppColors.primaryText.withOpacity(0.2),
         ),
       ),
       child: Column(
@@ -882,7 +882,7 @@ class _BookingScreenState extends State<BookingScreen> {
           text: _isBooking ? 'Booking...' : 'Book Room',
           onPressed: _isBooking ? null : _bookRoom,
           backgroundColor: widget.room.isAvailable
-              ? AppColors.primaryRed
+              ? AppColors.primaryText
               : Colors.grey.shade400,
         ),
       ),

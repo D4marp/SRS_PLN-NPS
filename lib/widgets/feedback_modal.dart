@@ -17,9 +17,21 @@ class FeedbackModal extends StatefulWidget {
   State<FeedbackModal> createState() => _FeedbackModalState();
 }
 
+const _kComplaintTags = [
+  'AC mati',
+  'Proyektor tidak berfungsi',
+  'Fasilitas tidak lengkap',
+  'Ruangan kotor',
+  'Koneksi internet buruk',
+  'Kursi/meja kurang',
+  'Kebisingan',
+  'Lainnya',
+];
+
 class _FeedbackModalState extends State<FeedbackModal> {
   String? _selectedSatisfaction; // "satisfied" or "unsatisfied"
   final _reasonController = TextEditingController();
+  final List<String> _selectedTags = [];
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -30,12 +42,23 @@ class _FeedbackModalState extends State<FeedbackModal> {
   }
 
   bool get _isReasonValid {
+    if (_selectedSatisfaction == 'unsatisfied' && _selectedTags.isNotEmpty) return true;
     final text = _reasonController.text.trim();
     return text.length >= 10 && text.length <= 500;
   }
 
   bool get _canSubmit {
     return _selectedSatisfaction != null && _isReasonValid && !_isLoading;
+  }
+
+  String _buildReason() {
+    final parts = <String>[];
+    if (_selectedTags.isNotEmpty) {
+      parts.add(_selectedTags.join(', '));
+    }
+    final text = _reasonController.text.trim();
+    if (text.isNotEmpty) parts.add(text);
+    return parts.join(' — ');
   }
 
   Future<void> _submitFeedback() async {
@@ -50,7 +73,7 @@ class _FeedbackModalState extends State<FeedbackModal> {
       await ApiBookingService.submitFeedback(
         bookingId: widget.booking.id,
         satisfaction: _selectedSatisfaction!,
-        reason: _reasonController.text.trim(),
+        reason: _buildReason(),
       );
 
       if (mounted) {
@@ -119,6 +142,7 @@ class _FeedbackModalState extends State<FeedbackModal> {
                         : () {
                             setState(() {
                               _selectedSatisfaction = 'satisfied';
+                              _selectedTags.clear();
                             });
                           },
                     child: Container(
@@ -182,8 +206,62 @@ class _FeedbackModalState extends State<FeedbackModal> {
 
               // If satisfaction selected, show reason text area
               if (_selectedSatisfaction != null) ...[
+                // Complaint tags (only for unsatisfied)
+                if (_selectedSatisfaction == 'unsatisfied') ...[
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Kendala yang dialami:',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.primaryText,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _kComplaintTags.map((tag) {
+                      final selected = _selectedTags.contains(tag);
+                      return FilterChip(
+                        label: Text(tag),
+                        selected: selected,
+                        onSelected: _isLoading
+                            ? null
+                            : (val) {
+                                setState(() {
+                                  if (val) {
+                                    _selectedTags.add(tag);
+                                  } else {
+                                    _selectedTags.remove(tag);
+                                  }
+                                });
+                              },
+                        selectedColor: AppColors.errorRedLight,
+                        checkmarkColor: AppColors.errorRed,
+                        labelStyle: TextStyle(
+                          color: selected ? AppColors.errorRed : AppColors.primaryText,
+                          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                          fontSize: 12,
+                        ),
+                        side: BorderSide(
+                          color: selected ? AppColors.errorRed : AppColors.borderColor,
+                          width: selected ? 1.5 : 1,
+                        ),
+                        backgroundColor: AppColors.creamBackground,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                ],
                 Text(
-                  'Jelaskan alasan Anda',
+                  _selectedSatisfaction == 'unsatisfied'
+                      ? 'Catatan tambahan (opsional)'
+                      : 'Jelaskan alasan Anda',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.primaryText,
                         fontWeight: FontWeight.w600,
@@ -197,7 +275,9 @@ class _FeedbackModalState extends State<FeedbackModal> {
                   maxLength: 500,
                   minLines: 3,
                   decoration: InputDecoration(
-                    hintText: 'Minimal 10 karakter...',
+                    hintText: _selectedSatisfaction == 'unsatisfied'
+                        ? 'Catatan tambahan (opsional)...'
+                        : 'Minimal 10 karakter...',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -236,7 +316,8 @@ class _FeedbackModalState extends State<FeedbackModal> {
                 ],
 
                 // Validation message
-                if (!_isReasonValid && _reasonController.text.isNotEmpty)
+                if (!_isReasonValid && _reasonController.text.isNotEmpty &&
+                    (_selectedSatisfaction != 'unsatisfied' || _selectedTags.isEmpty))
                   Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.md),
                     child: Text(

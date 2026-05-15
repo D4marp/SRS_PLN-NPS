@@ -75,7 +75,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: ShapeDecoration(
-          color: isSelected ? const Color(0xFFEC0303) : Colors.white,
+          color: isSelected ? AppColors.primaryText : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(6),
           ),
@@ -150,13 +150,13 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
                   Icon(
                     Icons.error_outline,
                     size: 64,
-                    color: AppColors.errorRed.withOpacity(0.5),
+                    color: AppColors.primaryText.withOpacity(0.5),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text(
                     'Oops! Something went wrong',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.errorRed,
+                          color: AppColors.primaryText,
                         ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -177,7 +177,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
                     icon: const Icon(Icons.refresh),
                     label: const Text('Retry'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryRed,
+                      backgroundColor: AppColors.primaryText,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg,
@@ -484,13 +484,13 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
                   SnackBar(
                     content: Text(bookingProvider.errorMessage ??
                         'Failed to cancel booking'),
-                    backgroundColor: AppColors.errorRed,
+                    backgroundColor: AppColors.primaryText,
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.errorRed,
+              backgroundColor: AppColors.primaryText,
             ),
             child: const Text('Cancel Booking'),
           ),
@@ -872,7 +872,7 @@ class _BookingDetailsSheetState extends State<_BookingDetailsSheet> {
                                         fontWeight: FontWeight.w600,
                                         color: _currentBooking.feedbackSatisfaction == 'satisfied'
                                             ? AppColors.successGreen
-                                            : AppColors.errorRed,
+                                            : AppColors.primaryText,
                                       ),
                                 ),
                               ],
