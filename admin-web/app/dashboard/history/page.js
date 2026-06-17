@@ -3,27 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import {
-  Building2,
-  CalendarDays,
-  Clock,
-  LayoutDashboard,
-  LogOut,
-  RefreshCw,
-  ShieldCheck,
-  Users,
-} from 'lucide-react';
+import { LogOut, RefreshCw, ShieldCheck } from 'lucide-react';
 import BookingHistoryPanel from '@/components/BookingHistoryPanel';
+import { DASHBOARD_MENU_ITEMS } from '@/lib/dashboard-nav';
 import { getAdminBookings, getMe, listRooms } from '@/lib/api';
 import { clearSession, getStoredUser, getToken, isAdminRole, saveSession } from '@/lib/storage';
-
-const MENU_ITEMS = [
-  { key: 'overview', label: 'Overview', description: 'Ringkasan operasional', icon: LayoutDashboard, href: '/dashboard' },
-  { key: 'bookings', label: 'Booking Calendar', description: 'Kelola booking harian', icon: CalendarDays, href: '/dashboard' },
-  { key: 'history', label: 'Riwayat', description: 'Daftar riwayat booking', icon: Clock, href: '/dashboard/history' },
-  { key: 'rooms', label: 'Rooms', description: 'Kelola ruangan', icon: Building2, href: '/dashboard' },
-  { key: 'users', label: 'User Management', description: 'Atur akun dan role', icon: Users, href: '/dashboard' },
-];
 
 export default function BookingHistoryPage() {
   const router = useRouter();
@@ -113,10 +97,8 @@ export default function BookingHistoryPage() {
     await loadBookings(token);
   };
 
-  const navigateMenu = (key) => {
-    const target = MENU_ITEMS.find((item) => item.key === key);
-    if (!target) return;
-    router.push(target.href);
+  const navigateMenu = (href) => {
+    router.push(href);
   };
 
   if (bootLoading) {
@@ -137,7 +119,7 @@ export default function BookingHistoryPage() {
         </div>
 
         <nav className="grid gap-2">
-          {MENU_ITEMS.map((item) => {
+          {DASHBOARD_MENU_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = item.key === 'history';
 
@@ -145,7 +127,7 @@ export default function BookingHistoryPage() {
               <button
                 key={item.key}
                 type="button"
-                onClick={() => navigateMenu(item.key)}
+                onClick={() => navigateMenu(item.href)}
                 className={[
                   'group relative flex items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 text-left transition',
                   active
@@ -187,13 +169,13 @@ export default function BookingHistoryPage() {
           </div>
 
           <div className="mb-4 flex flex-wrap items-center gap-2 lg:hidden">
-            {MENU_ITEMS.map((item) => {
+            {DASHBOARD_MENU_ITEMS.map((item) => {
               const active = item.key === 'history';
               return (
                 <button
                   key={item.key}
                   type="button"
-                  onClick={() => navigateMenu(item.key)}
+                  onClick={() => navigateMenu(item.href)}
                   className={[
                     'rounded-full px-3 py-1.5 text-xs font-semibold transition',
                     active ? 'bg-sky-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200',

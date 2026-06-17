@@ -120,6 +120,56 @@ class _FeedbackModalState extends State<FeedbackModal> {
     return 'Puas dengan layanan.';
   }
 
+  Future<void> _handleSatisfiedTap() async {
+    if (_isLoading) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Konfirmasi Penilaian',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: AppColors.primaryText,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin memberikan penilaian Puas untuk layanan ruangan ini?',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.primaryText,
+              ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.successGreen,
+            ),
+            child: const Text(
+              'Ya, Puas',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _selectedSatisfaction = 'satisfied';
+      _selectedTags.clear();
+    });
+    await _submitFeedback(keepOpen: false);
+  }
+
   Future<void> _submitFeedback({required bool keepOpen}) async {
     if (!_canSubmit) return;
 
@@ -271,15 +321,7 @@ class _FeedbackModalState extends State<FeedbackModal> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   GestureDetector(
-                    onTap: _isLoading
-                        ? null
-                        : () {
-                            setState(() {
-                              _selectedSatisfaction = 'satisfied';
-                              _selectedTags.clear();
-                            });
-                            _submitFeedback(keepOpen: false);
-                          },
+                    onTap: _isLoading ? null : _handleSatisfiedTap,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -395,7 +437,7 @@ class _FeedbackModalState extends State<FeedbackModal> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Pilih fasilitas yang rusak, lalu tambahkan opsi lainnya jika perlu.',
+                      'Pilih fasilitas ruangan yang rusak, lalu tambahkan opsi lainnya jika perlu.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: AppColors.secondaryText,
                             fontStyle: FontStyle.italic,

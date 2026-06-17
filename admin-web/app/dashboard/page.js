@@ -1,18 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  Building2,
-  CalendarDays,
-  Clock,
-  LayoutDashboard,
   LogOut,
   RefreshCw,
   ShieldCheck,
-  Users,
-  Zap,
 } from 'lucide-react';
 import BookingHistoryPanel from '@/components/BookingHistoryPanel';
 import BookingCalendar from '@/components/BookingCalendar';
@@ -46,18 +40,26 @@ import {
   isAdminRole,
   saveSession,
 } from '@/lib/storage';
-
-const MENU_ITEMS = [
-  { key: 'overview', label: 'Overview', description: 'Ringkasan operasional', icon: LayoutDashboard },
-  { key: 'bookings', label: 'Booking Calendar', description: 'Kelola booking harian', icon: CalendarDays },
-  { key: 'history', label: 'Riwayat', description: 'Daftar riwayat booking', icon: Clock },
-  { key: 'rooms', label: 'Rooms', description: 'Kelola ruangan', icon: Building2 },
-  { key: 'facilities', label: 'Facilities', description: 'Kelola fasilitas ruangan', icon: Zap },
-  { key: 'users', label: 'User Management', description: 'Atur akun dan role', icon: Users },
-];
+import { DASHBOARD_MENU_ITEMS, resolveDashboardMenu } from '@/lib/dashboard-nav';
 
 export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen flex-col items-center justify-center gap-3 text-slate-600">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-sky-200 border-t-sky-500" />
+          <p className="text-sm">Memuat dashboard...</p>
+        </main>
+      }
+    >
+      <DashboardPageContent />
+    </Suspense>
+  );
+}
+
+function DashboardPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [bootLoading, setBootLoading] = useState(true);
   const [dashboardLoading, setDashboardLoading] = useState(true);
@@ -83,7 +85,7 @@ export default function DashboardPage() {
   const [creatingRoom, setCreatingRoom] = useState(false);
   const [roomActionKey, setRoomActionKey] = useState('');
 
-  const [activeMenu, setActiveMenu] = useState('overview');
+  const [activeMenu, setActiveMenu] = useState(() => resolveDashboardMenu(searchParams.get('menu')));
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
@@ -144,6 +146,10 @@ export default function DashboardPage() {
       setRoomsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    setActiveMenu(resolveDashboardMenu(searchParams.get('menu')));
+  }, [searchParams]);
 
   useEffect(() => {
     let ignore = false;
@@ -428,7 +434,7 @@ export default function DashboardPage() {
         </div>
 
         <nav className="grid gap-2">
-          {MENU_ITEMS.map((item) => {
+          {DASHBOARD_MENU_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = activeMenu === item.key;
             return (
@@ -437,10 +443,11 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => {
                   if (item.key === 'history') {
-                    router.push('/dashboard/history');
+                    router.push(item.href);
                     return;
                   }
                   setActiveMenu(item.key);
+                  router.replace(item.href, { scroll: false });
                 }}
                 className={[
                   'group relative flex items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 text-left transition',
@@ -481,7 +488,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="mb-4 flex flex-wrap items-center gap-2 lg:hidden">
-            {MENU_ITEMS.map((item) => {
+            {DASHBOARD_MENU_ITEMS.map((item) => {
               const active = activeMenu === item.key;
               return (
                 <button
@@ -489,10 +496,11 @@ export default function DashboardPage() {
                   type="button"
                   onClick={() => {
                     if (item.key === 'history') {
-                      router.push('/dashboard/history');
+                      router.push(item.href);
                       return;
                     }
                     setActiveMenu(item.key);
+                    router.replace(item.href, { scroll: false });
                   }}
                   className={[
                     'rounded-full px-3 py-1.5 text-xs font-semibold transition',

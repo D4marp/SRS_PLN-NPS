@@ -47,7 +47,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
 
   // Cache untuk menghindari rebuild berlebihan
   List<BookingModel>? _cachedBookings;
-  List<BookingModel>? _cachedTodayBookings;
+  List<BookingModel>? _cachedScheduleBookings;
   DateTime? _lastBookingUpdateTime;
 
   @override
@@ -91,6 +91,27 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
       );
       return bookingDay.isAtSameMomentAs(today);
     }).toList();
+  }
+
+  List<BookingModel> _filterIncompleteBookings(List<BookingModel> bookings) {
+    return bookings.where((booking) {
+      if (booking.status == BookingStatus.cancelled ||
+          booking.status == BookingStatus.rejected ||
+          booking.status == BookingStatus.completed) {
+        return false;
+      }
+      if (booking.actualCheckOutTime?.isNotEmpty == true) {
+        return false;
+      }
+      return booking.status == BookingStatus.confirmed ||
+          booking.status == BookingStatus.pending;
+    }).toList();
+  }
+
+  List<String> _roomAmenitiesForFeedback() {
+    return widget.room.amenities
+        .where((item) => item.trim().isNotEmpty)
+        .toList();
   }
 
   // Helper untuk check apakah data booking berubah
@@ -171,12 +192,10 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     if (actualStart != null) {
       if (currentTime.isAfter(actualStart) ||
           currentTime.isAtSameMomentAs(actualStart)) {
-        if (_isAtOrAfter(currentTime, checkoutGraceEnd)) {
-          return 'Completed';
+        if (currentTime.isAfter(bookingEnd)) {
+          return 'Awaiting Check-out';
         }
-        return currentTime.isAfter(bookingEnd)
-            ? 'Awaiting Check-out'
-            : 'Ongoing';
+        return 'Ongoing';
       }
       if (currentTime.isBefore(actualStart)) {
         return 'Upcoming';
@@ -186,10 +205,8 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     if (currentTime.isBefore(bookingStart)) {
       return 'Upcoming';
     }
-    if (_isAtOrAfter(currentTime, checkoutGraceEnd)) {
-      return 'Completed';
-    }
-    if (currentTime.isAfter(bookingEnd)) {
+    if (currentTime.isAfter(bookingEnd) ||
+        _isAtOrAfter(currentTime, checkoutGraceEnd)) {
       return 'Awaiting Check-out';
     }
     return 'Ongoing';
@@ -1056,13 +1073,13 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         // Update cache only if data actually changed
         if (_hasBookingsChanged(allBookings)) {
           _cachedBookings = allBookings;
-          _cachedTodayBookings = _filterBookingsForToday(allBookings);
+          _cachedScheduleBookings = _filterIncompleteBookings(allBookings);
           _onBookingDataChanged(allBookings);
           debugPrint(
-              '📊 Schedule updated: ${_cachedTodayBookings?.length ?? 0} bookings (API-first + WebSocket merge)');
+              '📊 Schedule updated: ${_cachedScheduleBookings?.length ?? 0} incomplete bookings (API-first + WebSocket merge)');
         }
 
-        final bookings = _cachedTodayBookings ?? [];
+        final bookings = _cachedScheduleBookings ?? [];
 
         // Wrap dengan ValueListenableBuilder untuk status updates tanpa rebuild data
         return ValueListenableBuilder<DateTime>(
@@ -1095,7 +1112,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                 visibleBookings.isEmpty
                     ? Center(
                         child: Text(
-                          'No bookings for today',
+                          'No active bookings',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: screenWidth * 0.012,
@@ -1243,6 +1260,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                                     booking: booking,
                                     bookingId: booking.id,
                                     isCheckIn: false,
+                                    roomAmenities: _roomAmenitiesForFeedback(),
                                     screenWidth: screenWidth,
                                     screenHeight: screenHeight,
                                   )
@@ -1316,6 +1334,7 @@ class _CheckActionButton extends StatefulWidget {
   final BookingModel booking;
   final String bookingId;
   final bool isCheckIn;
+  final List<String> roomAmenities;
   final double screenWidth;
   final double screenHeight;
 
@@ -1323,6 +1342,7 @@ class _CheckActionButton extends StatefulWidget {
     required this.booking,
     required this.bookingId,
     required this.isCheckIn,
+    required this.roomAmenities,
     required this.screenWidth,
     required this.screenHeight,
   });
@@ -1348,7 +1368,7 @@ class _CheckActionButtonState extends State<_CheckActionButton> {
         barrierDismissible: false,
         builder: (dialogContext) => FeedbackModal(
           booking: widget.booking,
-          roomAmenities: widget.room.amenities,
+          roomAmenities: widget.roomAmenities,
           onFeedbackSubmitted: () {},
           autoSkipAfter: const Duration(minutes: 1),
         ),
