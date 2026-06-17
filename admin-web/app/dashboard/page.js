@@ -12,16 +12,17 @@ import {
   RefreshCw,
   ShieldCheck,
   Users,
+  Zap,
 } from 'lucide-react';
 import BookingHistoryPanel from '@/components/BookingHistoryPanel';
 import BookingCalendar from '@/components/BookingCalendar';
 import RoomManagement from '@/components/RoomManagement';
+import FacilitiesManagement from '@/components/FacilitiesManagement';
 import SatisfactionWidget from '@/components/SatisfactionWidget';
 import StatCard from '@/components/StatCard';
 import UserManagement from '@/components/UserManagement';
 import {
   approveBooking,
-  cancelBooking,
   changeUserRole,
   completeBooking,
   createBooking,
@@ -51,6 +52,7 @@ const MENU_ITEMS = [
   { key: 'bookings', label: 'Booking Calendar', description: 'Kelola booking harian', icon: CalendarDays },
   { key: 'history', label: 'Riwayat', description: 'Daftar riwayat booking', icon: Clock },
   { key: 'rooms', label: 'Rooms', description: 'Kelola ruangan', icon: Building2 },
+  { key: 'facilities', label: 'Facilities', description: 'Kelola fasilitas ruangan', icon: Zap },
   { key: 'users', label: 'User Management', description: 'Atur akun dan role', icon: Users },
 ];
 
@@ -66,6 +68,8 @@ export default function DashboardPage() {
   const [bookings, setBookings] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
+  const [overviewYearFilter, setOverviewYearFilter] = useState(String(new Date().getFullYear()));
+  const [overviewMonthFilter, setOverviewMonthFilter] = useState('');
   const [actionLoadingKey, setActionLoadingKey] = useState('');
   const [creatingBooking, setCreatingBooking] = useState(false);
 
@@ -84,7 +88,7 @@ export default function DashboardPage() {
   const [info, setInfo] = useState('');
 
   const loadStatsAndBookings = useCallback(
-    async (activeToken) => {
+    async (activeToken, feedbackFilters = {}) => {
       setDashboardLoading(true);
       setError('');
 
@@ -94,7 +98,7 @@ export default function DashboardPage() {
           getAdminBookings(activeToken, {
             status: statusFilter || undefined,
           }),
-          getFeedbackStats(activeToken),
+          getFeedbackStats(activeToken, feedbackFilters),
         ]);
 
         setStats(statsData || {});
@@ -164,7 +168,10 @@ export default function DashboardPage() {
         saveSession(activeToken, profile);
         setToken(activeToken);
         setCurrentUser(profile);
-        await loadStatsAndBookings(activeToken);
+        await loadStatsAndBookings(activeToken, {
+          year: overviewYearFilter || undefined,
+          month: overviewMonthFilter || undefined,
+        });
         await loadRooms();
       } catch (bootstrapError) {
         if (ignore) return;
@@ -180,7 +187,15 @@ export default function DashboardPage() {
     return () => {
       ignore = true;
     };
-  }, [loadRooms, loadStatsAndBookings, router]);
+  }, [loadRooms, loadStatsAndBookings, overviewMonthFilter, overviewYearFilter, router]);
+
+  useEffect(() => {
+    if (!token) return;
+    loadStatsAndBookings(token, {
+      year: overviewYearFilter || undefined,
+      month: overviewMonthFilter || undefined,
+    });
+  }, [token, overviewYearFilter, overviewMonthFilter, loadStatsAndBookings]);
 
   useEffect(() => {
     if (!token || currentUser?.role !== 'superadmin') return;
@@ -266,7 +281,10 @@ export default function DashboardPage() {
   const refreshDashboard = async () => {
     if (!token) return;
     setInfo('Data dashboard diperbarui.');
-    await loadStatsAndBookings(token);
+    await loadStatsAndBookings(token, {
+      year: overviewYearFilter || undefined,
+      month: overviewMonthFilter || undefined,
+    });
     await loadRooms();
   };
 
@@ -303,14 +321,10 @@ export default function DashboardPage() {
         setInfo('Booking ditandai completed.');
       }
 
-      if (action === 'cancel') {
-        const confirmed = window.confirm('Batalkan booking ini?');
-        if (!confirmed) return;
-        await cancelBooking(token, booking.id);
-        setInfo('Booking berhasil dibatalkan.');
-      }
-
-      await loadStatsAndBookings(token);
+      await loadStatsAndBookings(token, {
+      year: overviewYearFilter || undefined,
+      month: overviewMonthFilter || undefined,
+    });
     } catch (bookingError) {
       setError(bookingError.message || 'Aksi booking gagal dijalankan');
     } finally {
@@ -328,7 +342,10 @@ export default function DashboardPage() {
     try {
       await createBooking(token, payload);
       setInfo('Booking berhasil diajukan dan menunggu approval admin.');
-      await loadStatsAndBookings(token);
+      await loadStatsAndBookings(token, {
+      year: overviewYearFilter || undefined,
+      month: overviewMonthFilter || undefined,
+    });
     } catch (createError) {
       setError(createError.message || 'Gagal membuat booking');
     } finally {
@@ -456,6 +473,13 @@ export default function DashboardPage() {
 
       <main className="px-4 py-4 lg:ml-72 lg:px-6">
         <header className="mb-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
+            <Image src="/logo.png" alt="PLN NPS" width={170} height={54} className="h-auto w-auto max-w-[65vw]" priority />
+            <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600">
+              Admin Access
+            </div>
+          </div>
+
           <div className="mb-4 flex flex-wrap items-center gap-2 lg:hidden">
             {MENU_ITEMS.map((item) => {
               const active = activeMenu === item.key;
@@ -530,7 +554,15 @@ export default function DashboardPage() {
               <StatCard label="Total Rooms" value={statsView.rooms} tone="accent" />
             </div>
 
-            <SatisfactionWidget stats={statsView} />
+            <SatisfactionWidget
+              stats={statsView}
+              bookings={bookings}
+              rooms={rooms}
+              yearFilter={overviewYearFilter}
+              monthFilter={overviewMonthFilter}
+              onYearFilterChange={setOverviewYearFilter}
+              onMonthFilterChange={setOverviewMonthFilter}
+            />
 
             <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -572,6 +604,7 @@ export default function DashboardPage() {
                 <div className="mt-4">
                   <BookingHistoryPanel
                     bookings={bookings}
+                    rooms={rooms}
                     showHeader={false}
                     showFilters={false}
                     showExport={false}
@@ -602,11 +635,21 @@ export default function DashboardPage() {
           <RoomManagement
             rooms={rooms}
             loading={roomsLoading}
+            token={token}
             onCreateRoom={handleCreateRoom}
             onUpdateRoom={handleUpdateRoom}
             onDeleteRoom={handleDeleteRoom}
             creatingRoom={creatingRoom}
             actionBusyKey={roomActionKey}
+          />
+        )}
+
+        {activeMenu === 'facilities' && (
+          <FacilitiesManagement
+            token={token}
+            onFacilitiesChange={(facilities) => {
+              // Update reference jika diperlukan
+            }}
           />
         )}
 

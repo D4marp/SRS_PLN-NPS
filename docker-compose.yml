@@ -1,0 +1,98 @@
+version: '3.8'
+
+# Root docker-compose untuk orchestrate semua services
+# Untuk development convenience: docker-compose up
+# Untuk backend only: cd backend && docker-compose up
+# Untuk admin-web only: cd admin-web && docker-compose up
+
+services:
+  # MySQL Database (shared)
+  db:
+    image: mysql:8.0
+    container_name: pln_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-bookify}
+      MYSQL_USER: ${DB_USER:-bookify_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-bookify_secure_password}
+      MYSQL_ALLOW_EMPTY_PASSWORD: "false"
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/internal/database/migrations:/docker-entrypoint-initdb.d:ro
+    networks:
+      - pln_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Go Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pln_backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-bookify_user}
+      DB_PASSWORD: ${DB_PASSWORD:-bookify_secure_password}
+      DB_NAME: ${DB_NAME:-bookify}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
+      JWT_EXPIRY: ${JWT_EXPIRY:-168h}
+      PORT: 8080
+      UPLOADS_DIR: ./uploads
+      BASE_URL: ${BASE_URL:-http://localhost:8080}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-superadmin@bookify.local}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-superadmin123}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    volumes:
+      - ./backend/uploads:/app/uploads
+    networks:
+      - pln_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/rooms"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Next.js Admin Dashboard
+  admin-web:
+    build:
+      context: ./admin-web
+      dockerfile: Dockerfile
+    container_name: pln_admin_web
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://backend:8080}
+      NODE_ENV: ${NODE_ENV:-production}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    networks:
+      - pln_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  pln_network:
+    driver: bridge
+

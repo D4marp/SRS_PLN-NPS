@@ -144,6 +144,27 @@ func (h *RoomHandler) CreateRoom(c *gin.Context) {
 		return
 	}
 
+	if req.Floor == nil || strings.TrimSpace(*req.Floor) == "" {
+		utils.Error(c, http.StatusBadRequest, "floor is required")
+		return
+	}
+
+	if strings.TrimSpace(req.Description) == "" {
+		req.Description = "-"
+	}
+	if strings.TrimSpace(req.City) == "" {
+		req.City = "Unknown"
+	}
+	if strings.TrimSpace(string(req.RoomClass)) == "" {
+		req.RoomClass = models.RoomClassMeeting
+	}
+	if strings.TrimSpace(req.ContactNumber) == "" {
+		req.ContactNumber = "-"
+	}
+	if req.MaxGuests < 1 {
+		req.MaxGuests = 1
+	}
+
 	if req.Amenities == nil {
 		req.Amenities = []string{}
 	}
@@ -161,7 +182,7 @@ func (h *RoomHandler) CreateRoom(c *gin.Context) {
 		ImageURLs:     models.StringSlice{},
 		Amenities:     models.StringSlice(req.Amenities),
 		HasAC:         req.HasAC,
-		IsAvailable:   req.IsAvailable,
+		IsAvailable:   true,
 		MaxGuests:     req.MaxGuests,
 		ContactNumber: req.ContactNumber,
 		Floor:         req.Floor,
@@ -214,7 +235,7 @@ func (h *RoomHandler) UpdateRoom(c *gin.Context) {
 			room_class     = COALESCE(?, room_class),
 			amenities      = COALESCE(?, amenities),
 			has_ac         = COALESCE(?, has_ac),
-			is_available   = COALESCE(?, is_available),
+			is_available   = 1,
 			max_guests     = COALESCE(?, max_guests),
 			contact_number = COALESCE(?, contact_number),
 			floor          = COALESCE(?, floor),
@@ -222,7 +243,7 @@ func (h *RoomHandler) UpdateRoom(c *gin.Context) {
 			updated_at     = ?
 		 WHERE id = ?`,
 		req.Name, req.Description, req.Location, req.City, req.RoomClass,
-		amenitiesJSON, req.HasAC, req.IsAvailable, req.MaxGuests,
+		amenitiesJSON, req.HasAC, req.MaxGuests,
 		req.ContactNumber, req.Floor, req.Building, now, id,
 	)
 	if err != nil {

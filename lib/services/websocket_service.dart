@@ -43,7 +43,8 @@ class WebSocketService {
               if (type == 'initial' || type == 'update') {
                 final rawList = msg['data'] as List<dynamic>;
                 final rooms = rawList
-                    .map((e) => RoomModel.fromJson(Map<String, dynamic>.from(e as Map)))
+                    .map((e) =>
+                        RoomModel.fromJson(Map<String, dynamic>.from(e as Map)))
                     .toList();
                 if (!controller.isClosed) controller.add(rooms);
               }
@@ -87,7 +88,8 @@ class WebSocketService {
       return const Stream.empty();
     }
 
-    final uri = Uri.parse('$_wsBase/ws/bookings?token=${Uri.encodeComponent(jwt)}');
+    final uri =
+        Uri.parse('$_wsBase/ws/bookings?token=${Uri.encodeComponent(jwt)}');
     final controller = StreamController<List<BookingModel>>.broadcast();
     WebSocketChannel? channel;
     bool disposed = false;
@@ -104,7 +106,8 @@ class WebSocketService {
               if (type == 'initial' || type == 'update') {
                 final rawList = msg['data'] as List<dynamic>;
                 final bookings = rawList
-                    .map((e) => BookingModel.fromJson(Map<String, dynamic>.from(e as Map)))
+                    .map((e) => BookingModel.fromJson(
+                        Map<String, dynamic>.from(e as Map)))
                     .toList();
                 if (!controller.isClosed) controller.add(bookings);
               }
@@ -114,6 +117,7 @@ class WebSocketService {
           },
           onError: (error) {
             debugPrint('WebSocket bookings error: $error — reconnecting in 5s');
+            if (!controller.isClosed) controller.addError(error);
             Future.delayed(const Duration(seconds: 5), connect);
           },
           onDone: () {
@@ -124,6 +128,7 @@ class WebSocketService {
         );
       } catch (e) {
         debugPrint('WebSocket bookings connect failed: $e');
+        if (!controller.isClosed) controller.addError(e);
         Future.delayed(const Duration(seconds: 5), connect);
       }
     }

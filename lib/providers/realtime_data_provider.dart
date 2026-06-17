@@ -38,6 +38,7 @@ class RealtimeDataProvider extends ChangeNotifier {
 
   void _initializeStreams() {
     _setupRoomsRealtime();
+    // Booking stream is setup when a user id is available.
   }
 
   /// Setup realtime listener untuk rooms via WebSocket
@@ -46,8 +47,7 @@ class RealtimeDataProvider extends ChangeNotifier {
     _clearError();
 
     _allRoomsSubscription?.cancel();
-    _allRoomsSubscription =
-        WebSocketService.watchRooms(city: city).listen(
+    _allRoomsSubscription = WebSocketService.watchRooms(city: city).listen(
       (rooms) {
         _rooms = rooms;
         _setRoomsLoading(false);
@@ -68,14 +68,14 @@ class RealtimeDataProvider extends ChangeNotifier {
     _clearError();
 
     _userBookingsSubscription?.cancel();
-    _userBookingsSubscription =
-        WebSocketService.watchBookings().listen(
+    _userBookingsSubscription = WebSocketService.watchBookings().listen(
       (bookings) {
         _userBookings = bookings;
         _separateBookings();
         _setBookingsLoading(false);
         notifyListeners();
-        debugPrint('✅ Bookings updated via WebSocket: ${bookings.length} bookings');
+        debugPrint(
+            '✅ Bookings updated via WebSocket: ${bookings.length} bookings');
       },
       onError: (error) {
         debugPrint('❌ Error in bookings stream: $error');

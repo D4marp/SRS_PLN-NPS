@@ -27,8 +27,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   int _guestCount = 1;
   late TextEditingController _customDurationController;
   late TextEditingController _purposeController;
-  late TextEditingController _bookedForNameController;
-  late TextEditingController _bookedForCompanyController;
+  late TextEditingController _pihak1Controller;
+  late TextEditingController _pihak2Controller;
+  late TextEditingController _atasNamaController;
   bool _isBooking = false;
   late Timer _timeUpdateTimer;
 
@@ -37,13 +38,14 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     super.initState();
     _customDurationController = TextEditingController();
     _purposeController = TextEditingController();
-    _bookedForNameController = TextEditingController();
-    _bookedForCompanyController = TextEditingController();
-    
+    _pihak1Controller = TextEditingController();
+    _pihak2Controller = TextEditingController();
+    _atasNamaController = TextEditingController();
+
     // Set start time to current time
     final now = DateTime.now();
     _startTime = TimeOfDay(hour: now.hour, minute: now.minute);
-    
+
     // Update time every second for realtime display
     _timeUpdateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
@@ -59,14 +61,16 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   void dispose() {
     _customDurationController.dispose();
     _purposeController.dispose();
-    _bookedForNameController.dispose();
-    _bookedForCompanyController.dispose();
+    _pihak1Controller.dispose();
+    _pihak2Controller.dispose();
+    _atasNamaController.dispose();
     _timeUpdateTimer.cancel();
     super.dispose();
   }
 
   TimeOfDay _calculateEndTime() {
-    final minutes = int.tryParse(_customDurationController.text) ?? _durationMinutes;
+    final minutes =
+        int.tryParse(_customDurationController.text) ?? _durationMinutes;
     final totalMinutes = _startTime.hour * 60 + _startTime.minute + minutes;
     final hours = (totalMinutes ~/ 60) % 24;
     final mins = totalMinutes % 60;
@@ -105,13 +109,15 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     }
 
     final now = DateTime.now();
-    final selectedDateOnly = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final selectedDateOnly =
+        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
     final todayOnly = DateTime(now.year, now.month, now.day);
-    
+
     if (selectedDateOnly.isBefore(todayOnly)) {
       _showErrorSnackBar(
         title: 'Invalid Date',
-        message: 'Cannot book dates in the past. Please select today or a future date.',
+        message:
+            'Cannot book dates in the past. Please select today or a future date.',
       );
       return;
     }
@@ -121,11 +127,12 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
       final currentMinute = now.minute;
       final currentTimeInMinutes = currentHour * 60 + currentMinute;
       final selectedTimeInMinutes = _startTime.hour * 60 + _startTime.minute;
-      
+
       if (selectedTimeInMinutes < currentTimeInMinutes) {
         _showErrorSnackBar(
           title: 'Time Already Passed',
-          message: 'Cannot book times that have already passed. Current time is ${currentHour.toString().padLeft(2, '0')}:${currentMinute.toString().padLeft(2, '0')}. Please select a later time.',
+          message:
+              'Cannot book times that have already passed. Current time is ${currentHour.toString().padLeft(2, '0')}:${currentMinute.toString().padLeft(2, '0')}. Please select a later time.',
         );
         return;
       }
@@ -134,7 +141,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     if (_guestCount > widget.room.maxGuests) {
       _showErrorSnackBar(
         title: 'Exceeds Capacity',
-        message: 'Number of guests ($_guestCount) exceeds room capacity (${widget.room.maxGuests}).',
+        message:
+            'Number of guests ($_guestCount) exceeds room capacity (${widget.room.maxGuests}).',
       );
       return;
     }
@@ -154,7 +162,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
       debugPrint('🔍 Attempting booking:');
       debugPrint('   Room ID: ${widget.room.id}');
       debugPrint('   Date: ${_selectedDate.toString().split(' ')[0]}');
-      debugPrint('   Time: ${_timeToString(_startTime)} - ${_timeToString(endTime)}');
+      debugPrint(
+          '   Time: ${_timeToString(_startTime)} - ${_timeToString(endTime)}');
       debugPrint('   Guests: $_guestCount');
 
       final bookingId = await bookingProvider.createBooking(
@@ -164,17 +173,20 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
         checkInTime: _timeToString(_startTime),
         checkOutTime: _timeToString(endTime),
         numberOfGuests: _guestCount,
-        bookedForName: _bookedForNameController.text.trim().isNotEmpty
-            ? _bookedForNameController.text.trim()
+        bookedForName: _atasNamaController.text.isNotEmpty
+            ? _atasNamaController.text
             : null,
-        bookedForCompany: _bookedForCompanyController.text.trim().isNotEmpty
-            ? _bookedForCompanyController.text.trim()
-            : null,
-        purpose: _purposeController.text.isNotEmpty ? _purposeController.text : null,
+        pihak1:
+            _pihak1Controller.text.isNotEmpty ? _pihak1Controller.text : null,
+        pihak2:
+            _pihak2Controller.text.isNotEmpty ? _pihak2Controller.text : null,
+        purpose:
+            _purposeController.text.isNotEmpty ? _purposeController.text : null,
       );
 
       if (bookingId == null) {
-        final errorMsg = bookingProvider.errorMessage ?? 'Unknown error occurred';
+        final errorMsg =
+            bookingProvider.errorMessage ?? 'Unknown error occurred';
         throw errorMsg;
       }
 
@@ -185,23 +197,24 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
           title: 'Booking Confirmed!',
           message: 'Your booking has been successfully created.',
         );
-        
+
         debugPrint('🔥 Booking saved! Stream will auto-update all devices...');
-        
+
         Future.delayed(const Duration(milliseconds: 800), () {
           if (mounted) Navigator.of(context).pop();
         });
       }
     } catch (e) {
       debugPrint('❌ Booking error: $e');
-      
+
       final errorString = e.toString();
       String title = 'Booking Failed';
       String message = 'An unexpected error occurred.';
 
       if (errorString.contains('not available for the selected')) {
         title = 'Time Slot Unavailable';
-        message = 'This time slot is already booked.\nPlease select another time or date.';
+        message =
+            'This time slot is already booked.\nPlease select another time or date.';
       } else if (errorString.contains('exceeds room capacity')) {
         title = 'Capacity Exceeded';
         message = 'Too many guests for this room.\nPlease reduce guest count.';
@@ -215,7 +228,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
         title = 'Permission Denied';
         message = 'You do not have permission to create bookings.';
       } else {
-        message = errorString.replaceAll('Exception: ', '').replaceAll('Error creating booking: ', '');
+        message = errorString
+            .replaceAll('Exception: ', '')
+            .replaceAll('Error creating booking: ', '');
       }
 
       if (mounted) {
@@ -244,7 +259,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.check_circle, color: Colors.white, size: 24),
+                child: const Icon(Icons.check_circle,
+                    color: Colors.white, size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -359,7 +375,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(
-            color: (minutes != 0 && isSelected) ? AppColors.primaryText : Colors.transparent,
+            color: (minutes != 0 && isSelected)
+                ? AppColors.primaryText
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(11),
             border: Border.all(
               color: Colors.white.withOpacity(0.3),
@@ -372,7 +390,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
               Icon(
                 Icons.hourglass_empty,
                 size: 16,
-                color: (minutes != 0 && isSelected) ? Colors.white : Colors.white,
+                color:
+                    (minutes != 0 && isSelected) ? Colors.white : Colors.white,
               ),
               const SizedBox(width: 4),
               Text(
@@ -381,7 +400,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: (minutes != 0 && isSelected) ? Colors.white : Colors.white,
+                  color: (minutes != 0 && isSelected)
+                      ? Colors.white
+                      : Colors.white,
                   fontFamily: 'Plus Jakarta Sans',
                 ),
               ),
@@ -395,7 +416,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   Widget _buildCalendarWidget() {
     final currentMonth = _selectedDate.month;
     final currentYear = _selectedDate.year;
-    
+
     final firstDay = DateTime(currentYear, currentMonth, 1);
     final lastDay = DateTime(currentYear, currentMonth + 1, 0);
     final daysInMonth = lastDay.day;
@@ -443,7 +464,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                         _selectedDate.day.clamp(1, 28),
                       ),
                     ),
-                    child: Icon(Icons.chevron_left, color: Colors.grey.shade600),
+                    child:
+                        Icon(Icons.chevron_left, color: Colors.grey.shade600),
                   ),
                   GestureDetector(
                     onTap: () => setState(
@@ -453,7 +475,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                         _selectedDate.day.clamp(1, 28),
                       ),
                     ),
-                    child: Icon(Icons.chevron_right, color: Colors.grey.shade600),
+                    child:
+                        Icon(Icons.chevron_right, color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -495,12 +518,12 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                           onTap: days[i + j] == 0
                               ? null
                               : () => setState(
-                                () => _selectedDate = DateTime(
-                                  currentYear,
-                                  currentMonth,
-                                  days[i + j],
-                                ),
-                              ),
+                                    () => _selectedDate = DateTime(
+                                      currentYear,
+                                      currentMonth,
+                                      days[i + j],
+                                    ),
+                                  ),
                           child: Container(
                             width: 36,
                             height: 36,
@@ -521,7 +544,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                                   color: days[i + j] == 0
                                       ? Colors.transparent
                                       : days[i + j] == _selectedDate.day &&
-                                              currentMonth == _selectedDate.month &&
+                                              currentMonth ==
+                                                  _selectedDate.month &&
                                               currentYear == _selectedDate.year
                                           ? Colors.white
                                           : Colors.grey.shade700,
@@ -549,7 +573,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
 
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
-        if (authProvider.userModel == null || authProvider.userModel?.role != UserRole.booking) {
+        if (authProvider.userModel == null ||
+            authProvider.userModel?.role != UserRole.booking) {
           return Scaffold(
             backgroundColor: Colors.white,
             body: Center(
@@ -584,7 +609,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                     onPressed: () => Navigator.of(context).pop(),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryText,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 16),
                     ),
                     child: const Text('Go Back'),
                   ),
@@ -669,6 +695,135 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                                 ),
                                 const SizedBox(height: AppSpacing.lg),
 
+                                // Atas Nama Section
+                                Text(
+                                  'Atas Nama',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    fontFamily: 'Plus Jakarta Sans',
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.md,
+                                    vertical: AppSpacing.sm,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.05),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.3),
+                                      width: 1.5,
+                                    ),
+                                    borderRadius: BorderRadius.circular(11),
+                                  ),
+                                  child: TextField(
+                                    controller: _atasNamaController,
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontFamily: 'Plus Jakarta Sans',
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: 'e.g. Amir',
+                                      hintStyle: TextStyle(
+                                        color: Colors.black.withOpacity(0.4),
+                                        fontFamily: 'Plus Jakarta Sans',
+                                      ),
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.lg),
+
+                                // Pihak 1 Section
+                                Text(
+                                  'Pihak 1',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    fontFamily: 'Plus Jakarta Sans',
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.md,
+                                    vertical: AppSpacing.sm,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.05),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.3),
+                                      width: 1.5,
+                                    ),
+                                    borderRadius: BorderRadius.circular(11),
+                                  ),
+                                  child: TextField(
+                                    controller: _pihak1Controller,
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontFamily: 'Plus Jakarta Sans',
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: 'e.g. PLN',
+                                      hintStyle: TextStyle(
+                                        color: Colors.black.withOpacity(0.4),
+                                        fontFamily: 'Plus Jakarta Sans',
+                                      ),
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.lg),
+
+                                // Pihak 2 Section
+                                Text(
+                                  'Pihak 2',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    fontFamily: 'Plus Jakarta Sans',
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.md,
+                                    vertical: AppSpacing.sm,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.05),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.3),
+                                      width: 1.5,
+                                    ),
+                                    borderRadius: BorderRadius.circular(11),
+                                  ),
+                                  child: TextField(
+                                    controller: _pihak2Controller,
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontFamily: 'Plus Jakarta Sans',
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: 'e.g. Vendor / Mitra',
+                                      hintStyle: TextStyle(
+                                        color: Colors.black.withOpacity(0.4),
+                                        fontFamily: 'Plus Jakarta Sans',
+                                      ),
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.lg),
+
                                 // Purpose Section
                                 Text(
                                   'Purpose (optional)',
@@ -701,81 +856,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                                       fontFamily: 'Plus Jakarta Sans',
                                     ),
                                     decoration: InputDecoration(
-                                      hintText: 'e.g. Meeting, Training, Class ...',
-                                      hintStyle: TextStyle(
-                                        color: Colors.black.withOpacity(0.4),
-                                        fontFamily: 'Plus Jakarta Sans',
-                                      ),
-                                      border: InputBorder.none,
-                                      isDense: true,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.lg),
-
-                                // Booking recipient section
-                                Text(
-                                  'Booked For (optional)',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                    fontFamily: 'Plus Jakarta Sans',
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.md,
-                                    vertical: AppSpacing.sm,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.3),
-                                      width: 1.5,
-                                    ),
-                                    borderRadius: BorderRadius.circular(11),
-                                  ),
-                                  child: TextField(
-                                    controller: _bookedForNameController,
-                                    style: const TextStyle(
-                                      color: Colors.black87,
-                                      fontFamily: 'Plus Jakarta Sans',
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: 'Name of booking recipient',
-                                      hintStyle: TextStyle(
-                                        color: Colors.black.withOpacity(0.4),
-                                        fontFamily: 'Plus Jakarta Sans',
-                                      ),
-                                      border: InputBorder.none,
-                                      isDense: true,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.sm),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.md,
-                                    vertical: AppSpacing.sm,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.3),
-                                      width: 1.5,
-                                    ),
-                                    borderRadius: BorderRadius.circular(11),
-                                  ),
-                                  child: TextField(
-                                    controller: _bookedForCompanyController,
-                                    style: const TextStyle(
-                                      color: Colors.black87,
-                                      fontFamily: 'Plus Jakarta Sans',
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: 'Company / organization',
+                                      hintText:
+                                          'e.g. Meeting, Training, Class ...',
                                       hintStyle: TextStyle(
                                         color: Colors.black.withOpacity(0.4),
                                         fontFamily: 'Plus Jakarta Sans',
@@ -816,7 +898,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                                     children: [
                                       GestureDetector(
                                         onTap: _guestCount > 1
-                                            ? () => setState(() => _guestCount--)
+                                            ? () =>
+                                                setState(() => _guestCount--)
                                             : null,
                                         child: Text(
                                           '−',
@@ -840,15 +923,18 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                                       ),
                                       const SizedBox(width: AppSpacing.md),
                                       GestureDetector(
-                                        onTap: _guestCount < widget.room.maxGuests
-                                            ? () => setState(() => _guestCount++)
+                                        onTap: _guestCount <
+                                                widget.room.maxGuests
+                                            ? () =>
+                                                setState(() => _guestCount++)
                                             : null,
                                         child: Text(
                                           '+',
                                           style: TextStyle(
                                             fontSize: 28,
                                             fontWeight: FontWeight.w500,
-                                            color: _guestCount < widget.room.maxGuests
+                                            color: _guestCount <
+                                                    widget.room.maxGuests
                                                 ? Colors.white.withOpacity(0.7)
                                                 : Colors.white.withOpacity(0.3),
                                             fontFamily: 'Plus Jakarta Sans',
@@ -927,7 +1013,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                                 const SizedBox(width: AppSpacing.md),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         ': ${_selectedDate.day} ${_getMonthName(_selectedDate.month)} ${_selectedDate.year} / ${_timeToString(_startTime)}-${_timeToString(endTime)}',
@@ -989,7 +1076,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
                                   ),
                                 )
                               : const Text(

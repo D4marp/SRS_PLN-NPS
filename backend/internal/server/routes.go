@@ -17,6 +17,9 @@ func (s *Server) registerRoutes(r *gin.Engine) {
 	rtManager := realtime.NewManager()
 
 	// -------------------------------------------------------------------------
+	// Health Check (for Docker/K8s health checks)
+	// -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
 	// Auth
 	// -------------------------------------------------------------------------
 	authH := handlers.NewAuthHandler(s.db, s.cfg.JWTSecret, s.cfg.JWTExpiry)
@@ -40,6 +43,7 @@ func (s *Server) registerRoutes(r *gin.Engine) {
 	// -------------------------------------------------------------------------
 	roomH := handlers.NewRoomHandler(s.db, rtManager)
 	bookingH := handlers.NewBookingHandler(s.db, rtManager)
+	facilityH := handlers.NewFacilityHandler(s.db)
 	rooms := r.Group("/api/rooms")
 	{
 		rooms.GET("", roomH.ListRooms)
@@ -55,6 +59,19 @@ func (s *Server) registerRoutes(r *gin.Engine) {
 		storageH := handlers.NewStorageHandler(s.db, s.cfg.UploadsDir, s.cfg.BaseURL)
 		rooms.POST("/:id/images", authMw, adminMw, storageH.UploadRoomImage)
 		rooms.DELETE("/:id/images", authMw, adminMw, storageH.DeleteRoomImage)
+	}
+
+	// -------------------------------------------------------------------------
+	// Facilities (public list, admin create/update/delete)
+	// -------------------------------------------------------------------------
+	facilities := r.Group("/api/facilities")
+	{
+		facilities.GET("", facilityH.ListFacilities)
+
+		// Admin/superadmin only
+		facilities.POST("", authMw, adminMw, facilityH.CreateFacility)
+		facilities.PUT("/:id", authMw, adminMw, facilityH.UpdateFacility)
+		facilities.DELETE("/:id", authMw, adminMw, facilityH.DeleteFacility)
 	}
 
 	// -------------------------------------------------------------------------

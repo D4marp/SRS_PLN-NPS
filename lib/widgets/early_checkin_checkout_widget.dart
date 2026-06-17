@@ -129,6 +129,7 @@ class _EarlyCheckInCheckOutWidgetState extends State<EarlyCheckInCheckOutWidget>
         bookingId: widget.booking.id,
         actualCheckInTime: checkInStr,
         actualCheckOutTime: checkOutStr,
+        markComplete: checkOutStr.isNotEmpty,
       );
 
       if (mounted) {
@@ -154,14 +155,13 @@ class _EarlyCheckInCheckOutWidgetState extends State<EarlyCheckInCheckOutWidget>
   }
 
   static const _kComplaintTags = [
-    'AC mati',
-    'Proyektor tidak berfungsi',
-    'Fasilitas tidak lengkap',
-    'Ruangan kotor',
-    'Koneksi internet buruk',
-    'Kursi/meja kurang',
-    'Kebisingan',
-    'Lainnya',
+    'Ruang rapat tidak bersih',
+    'Kursi kurang',
+    'AC rusak',
+    'Proyektor rusak',
+    'LCD rusak',
+    'Pointer tidak ada',
+    'Perangkat zoom rusak',
   ];
 
   void _showSatisfactionSurvey() {
@@ -181,15 +181,22 @@ class _EarlyCheckInCheckOutWidgetState extends State<EarlyCheckInCheckOutWidget>
           builder: (ctx, setSheetState) {
             final isUnsatisfied = selectedSatisfaction == 'unsatisfied';
             final canSubmit = selectedSatisfaction != null &&
-                (selectedTags.isNotEmpty ||
-                    reasonController.text.trim().length >= 10);
+                (selectedSatisfaction == 'satisfied' || selectedTags.isNotEmpty);
 
             String buildReason() {
-              final parts = <String>[];
-              if (selectedTags.isNotEmpty) parts.add(selectedTags.join(', '));
+              if (selectedSatisfaction == 'unsatisfied') {
+                final text = reasonController.text.trim();
+                final base = 'Komplain: ${selectedTags.join(', ')}';
+                if (text.isEmpty) {
+                  return base;
+                }
+                return '$base — $text';
+              }
               final text = reasonController.text.trim();
-              if (text.isNotEmpty) parts.add(text);
-              return parts.join(' — ');
+              if (text.isEmpty) {
+                return 'Puas dengan layanan.';
+              }
+              return 'Puas dengan layanan. — $text';
             }
 
             return SingleChildScrollView(

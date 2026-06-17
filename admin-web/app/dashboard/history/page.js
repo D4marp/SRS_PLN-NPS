@@ -14,7 +14,7 @@ import {
   Users,
 } from 'lucide-react';
 import BookingHistoryPanel from '@/components/BookingHistoryPanel';
-import { getAdminBookings, getMe } from '@/lib/api';
+import { getAdminBookings, getMe, listRooms } from '@/lib/api';
 import { clearSession, getStoredUser, getToken, isAdminRole, saveSession } from '@/lib/storage';
 
 const MENU_ITEMS = [
@@ -33,6 +33,7 @@ export default function BookingHistoryPage() {
   const [token, setToken] = useState('');
   const [currentUser, setCurrentUser] = useState(() => getStoredUser());
   const [bookings, setBookings] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
@@ -47,6 +48,15 @@ export default function BookingHistoryPage() {
       setError(loadError.message || 'Gagal memuat riwayat booking');
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const loadRooms = useCallback(async () => {
+    try {
+      const roomData = await listRooms();
+      setRooms(Array.isArray(roomData) ? roomData : []);
+    } catch (loadRoomsError) {
+      setError(loadRoomsError.message || 'Gagal memuat daftar ruangan');
     }
   }, []);
 
@@ -74,6 +84,7 @@ export default function BookingHistoryPage() {
         setToken(activeToken);
         setCurrentUser(profile);
         await loadBookings(activeToken);
+        await loadRooms();
       } catch (bootstrapError) {
         if (ignore) return;
         setError(bootstrapError.message || 'Gagal memverifikasi sesi admin');
@@ -88,7 +99,7 @@ export default function BookingHistoryPage() {
     return () => {
       ignore = true;
     };
-  }, [loadBookings, router]);
+  }, [loadBookings, loadRooms, router]);
 
   const handleLogout = () => {
     clearSession();
@@ -168,6 +179,13 @@ export default function BookingHistoryPage() {
 
       <main className="px-4 py-4 lg:ml-72 lg:px-6">
         <header className="mb-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
+            <Image src="/logo.png" alt="PLN NPS" width={170} height={54} className="h-auto w-auto max-w-[65vw]" priority />
+            <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600">
+              Admin Access
+            </div>
+          </div>
+
           <div className="mb-4 flex flex-wrap items-center gap-2 lg:hidden">
             {MENU_ITEMS.map((item) => {
               const active = item.key === 'history';
@@ -230,6 +248,7 @@ export default function BookingHistoryPage() {
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <BookingHistoryPanel
             bookings={bookings}
+            rooms={rooms}
             showHeader={true}
             showFilters={true}
             showExport={true}

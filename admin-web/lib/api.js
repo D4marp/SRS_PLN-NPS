@@ -55,8 +55,8 @@ export function getStats(token) {
   return request('/api/admin/stats', { token });
 }
 
-export function getFeedbackStats(token) {
-  return request('/api/feedbacks/stats', { token });
+export function getFeedbackStats(token, filters = {}) {
+  return request('/api/feedbacks/stats', { token, query: filters });
 }
 
 export function getAdminBookings(token, filters = {}) {
@@ -65,6 +65,33 @@ export function getAdminBookings(token, filters = {}) {
 
 export function listRooms(filters = {}) {
   return request('/api/rooms', { query: filters });
+}
+
+export function listFacilities() {
+  return request('/api/facilities');
+}
+
+export function createFacility(token, name) {
+  return request('/api/facilities', {
+    method: 'POST',
+    token,
+    body: { name },
+  });
+}
+
+export function updateFacility(token, facilityId, name) {
+  return request(`/api/facilities/${facilityId}`, {
+    method: 'PUT',
+    token,
+    body: { name },
+  });
+}
+
+export function deleteFacility(token, facilityId) {
+  return request(`/api/facilities/${facilityId}`, {
+    method: 'DELETE',
+    token,
+  });
 }
 
 export function createBooking(token, payload) {
@@ -153,4 +180,37 @@ export function deleteRoom(token, roomId) {
     method: 'DELETE',
     token,
   });
+}
+
+export async function uploadRoomImage(token, roomId, file) {
+  const formData = new FormData();
+  formData.append('image', file);
+  const url = new URL(`/api/rooms/${roomId}/images`, API_BASE_URL).toString();
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || payload?.success === false) {
+    throw new Error(payload?.error || `Upload failed with status ${response.status}`);
+  }
+  return payload?.data;
+}
+
+export async function deleteRoomImage(token, roomId, imageUrl) {
+  const url = new URL(`/api/rooms/${roomId}/images`, API_BASE_URL).toString();
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ imageUrl }),
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || payload?.success === false) {
+    throw new Error(payload?.error || `Delete failed with status ${response.status}`);
+  }
+  return payload?.data;
 }

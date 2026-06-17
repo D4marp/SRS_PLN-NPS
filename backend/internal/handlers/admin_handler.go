@@ -63,6 +63,8 @@ func (h *AdminHandler) GetAdminBookings(c *gin.Context) {
 	                 b.status, b.purpose, b.rejection_reason, b.approved_by, b.approved_at,
 	                 b.room_name, b.room_location, b.room_image_url,
 	                 b.booked_for_name, b.booked_for_company,
+	                 COALESCE(b.pihak_1, b.para_pihak) AS pihak_1,
+	                 COALESCE(b.pihak_2, b.divisi) AS pihak_2,
 	                 b.actual_check_in_time, b.actual_check_out_time, b.actual_duration_minutes,
 	                 b.user_name, b.user_email, b.created_at, b.updated_at,
 	                 reviewer.name AS reviewer_name
@@ -111,7 +113,7 @@ func (h *AdminHandler) GetAdminBookings(c *gin.Context) {
 			&b.CheckInTime, &b.CheckOutTime, &b.NumberOfGuests,
 			&b.Status, &b.Purpose, &b.RejectionReason, &b.ApprovedBy, &b.ApprovedAt,
 			&b.RoomName, &b.RoomLocation, &b.RoomImageURL,
-			&b.BookedForName, &b.BookedForCompany,
+			&b.BookedForName, &b.BookedForCompany, &b.Pihak1, &b.Pihak2,
 			&b.ActualCheckInTime, &b.ActualCheckOutTime, &b.ActualDurationMinutes,
 			&b.UserName, &b.UserEmail, &b.CreatedAt, &b.UpdatedAt,
 			&reviewerName,
@@ -126,18 +128,14 @@ func (h *AdminHandler) GetAdminBookings(c *gin.Context) {
 }
 
 func (h *AdminHandler) loadFeedback(bookingID string) (*models.Feedback, error) {
-	var feedback models.Feedback
-	err := h.db.QueryRowContext(context.Background(),
-		`SELECT id, booking_id, user_id, satisfaction_level, reason, created_at
-		 FROM feedbacks WHERE booking_id = ?`, bookingID).
-		Scan(&feedback.ID, &feedback.BookingID, &feedback.UserID, &feedback.SatisfactionLevel, &feedback.Reason, &feedback.CreatedAt)
+	feedback, err := loadFeedbackByBookingID(h.db, bookingID)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	return &feedback, nil
+	return feedback, nil
 }
 
 func (h *AdminHandler) ListUsers(c *gin.Context) {

@@ -98,7 +98,7 @@ class AuthProvider extends ChangeNotifier {
       _clearError();
 
       final token = await ApiAuthService.login(email, password);
-      if (token == null) throw 'Login failed - check email/password';
+      if (token == null) throw 'Login failed - invalid credentials or server error';
 
       ApiConfig.setToken(token);
 

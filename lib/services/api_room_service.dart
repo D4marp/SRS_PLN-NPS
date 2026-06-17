@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/room_model.dart';
 import '../utils/api_config.dart';
 
@@ -128,11 +128,12 @@ class ApiRoomService {
   // ─── Image management ───────────────────────────────────────────────────────
 
   /// Upload an image file for a room. Returns the public URL.
-  static Future<String> uploadImage(String roomId, File imageFile) async {
+  static Future<String> uploadImage(String roomId, XFile imageFile) async {
+    final bytes = await imageFile.readAsBytes();
     final formData = FormData.fromMap({
-      'image': await MultipartFile.fromFile(
-        imageFile.path,
-        filename: imageFile.path.split('/').last,
+      'image': MultipartFile.fromBytes(
+        bytes,
+        filename: imageFile.name,
       ),
     });
     final resp = await _dio().post(

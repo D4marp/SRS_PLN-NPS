@@ -120,6 +120,9 @@ class $AssetsImagesGen {
   /// File path: assets/images/.gitkeep
   String get aGitkeep => 'assets/images/.gitkeep';
 
+  /// File path: assets/images/Bg_PLN.png
+  AssetGenImage get bgPLN => const AssetGenImage('assets/images/Bg_PLN.png');
+
   /// File path: assets/images/Bg_booking.png
   AssetGenImage get bgBooking =>
       const AssetGenImage('assets/images/Bg_booking.png');
@@ -130,6 +133,14 @@ class $AssetsImagesGen {
 
   /// File path: assets/images/Home_bg.png
   AssetGenImage get homeBg => const AssetGenImage('assets/images/Home_bg.png');
+
+  /// File path: assets/images/Kurang Puas.png
+  AssetGenImage get kurangPuas =>
+      const AssetGenImage('assets/images/Kurang Puas.png');
+
+  /// File path: assets/images/Logo PLN.png
+  AssetGenImage get logoPLN =>
+      const AssetGenImage('assets/images/Logo PLN.png');
 
   /// File path: assets/images/My Bookings.png
   AssetGenImage get myBookings =>
@@ -145,6 +156,9 @@ class $AssetsImagesGen {
   /// File path: assets/images/filter.svg
   SvgGenImage get filter => const SvgGenImage('assets/images/filter.svg');
 
+  /// File path: assets/images/puas.png
+  AssetGenImage get puas => const AssetGenImage('assets/images/puas.png');
+
   /// File path: assets/images/roombooking.png
   AssetGenImage get roombooking =>
       const AssetGenImage('assets/images/roombooking.png');
@@ -152,13 +166,17 @@ class $AssetsImagesGen {
   /// List of all assets
   List<dynamic> get values => [
         aGitkeep,
+        bgPLN,
         bgBooking,
         bookingDetails,
         homeBg,
+        kurangPuas,
+        logoPLN,
         myBookings,
         splashScreen,
         adduser,
         filter,
+        puas,
         roombooking
       ];
 }

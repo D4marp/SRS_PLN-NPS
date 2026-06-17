@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/booking_provider.dart';
+import '../../providers/room_provider.dart';
 import '../../models/booking_model.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/booking_card.dart';
@@ -38,12 +39,13 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
         Provider.of<BookingProvider>(context, listen: false);
 
     if (authProvider.userModel != null) {
-      debugPrint('🔥 Loading user bookings with real-time stream for user: ${authProvider.userId!}');
+      debugPrint(
+          '🔥 Loading user bookings with real-time stream for user: ${authProvider.userId!}');
       debugPrint('📊 Current state before loading:');
       debugPrint('   - isLoading: ${bookingProvider.isLoading}');
       debugPrint('   - userBookings: ${bookingProvider.userBookings.length}');
       debugPrint('   - errorMessage: ${bookingProvider.errorMessage}');
-      
+
       bookingProvider.loadUserBookings(authProvider.userId!);
     } else {
       debugPrint('❌ Cannot load bookings: user is null');
@@ -112,16 +114,16 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
         // Content
         Scaffold(
           backgroundColor: Colors.transparent,
-            appBar: AppBar(
+          appBar: AppBar(
             title: const Center(
               child: Text(
-              'My Bookings',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 32,
-                fontFamily: 'Plus Jakarta Sans',
-                fontWeight: FontWeight.w700,
-              ),
+                'My Bookings',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             backgroundColor: Colors.transparent,
@@ -129,148 +131,187 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
             centerTitle: false,
           ),
           body: Consumer<BookingProvider>(
-        builder: (context, bookingProvider, child) {
-          debugPrint('📊 BookingHistoryScreen - Consumer rebuild');
-          debugPrint('   - isLoading: ${bookingProvider.isLoading}');
-          debugPrint('   - userBookings count: ${bookingProvider.userBookings.length}');
-          debugPrint('   - upcomingBookings count: ${bookingProvider.upcomingBookings.length}');
-          debugPrint('   - pastBookings count: ${bookingProvider.pastBookings.length}');
-          debugPrint('   - errorMessage: ${bookingProvider.errorMessage}');
-          
-          if (bookingProvider.isLoading && bookingProvider.userBookings.isEmpty) {
-            debugPrint('🔄 Showing shimmer loading...');
-            return _buildShimmerLoading();
-          }
+            builder: (context, bookingProvider, child) {
+              debugPrint('📊 BookingHistoryScreen - Consumer rebuild');
+              debugPrint('   - isLoading: ${bookingProvider.isLoading}');
+              debugPrint(
+                  '   - userBookings count: ${bookingProvider.userBookings.length}');
+              debugPrint(
+                  '   - upcomingBookings count: ${bookingProvider.upcomingBookings.length}');
+              debugPrint(
+                  '   - pastBookings count: ${bookingProvider.pastBookings.length}');
+              debugPrint('   - errorMessage: ${bookingProvider.errorMessage}');
 
-          if (bookingProvider.errorMessage != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: AppColors.primaryText.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    'Oops! Something went wrong',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.primaryText,
-                        ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              // If booking features are disabled, show fallback message.
+              if (!bookingProvider.isEnabled) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     child: Text(
-                      bookingProvider.errorMessage!,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      'Fitur booking sedang tidak tersedia.',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: AppColors.secondaryText,
                           ),
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  // Retry button
-                  ElevatedButton.icon(
-                    onPressed: _retryLoadBookings,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Retry'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryText,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                        vertical: AppSpacing.md,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  // Info about composite index
-                  if (bookingProvider.errorMessage!.contains('failed-precondition') ||
-                      bookingProvider.errorMessage!.contains('composite index'))
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                      child: Container(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          border: Border.all(color: Colors.blue.shade200),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Firebase Index Required',
-                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue.shade900,
-                                  ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'This app requires a Firestore composite index. Click the link in the error message above to create it in Firebase Console.',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.blue.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            );
-          }
+                );
+              }
 
-          return Column(
-            children: [
-              // Custom Tab Bar
-                // Custom Tab Bar with filter icon at right
-                Padding(
-                  padding: const EdgeInsets.only(left: 20, right: 20, top: 16),
-                  child: Row(
+              if (bookingProvider.isLoading &&
+                  bookingProvider.userBookings.isEmpty) {
+                debugPrint('🔄 Showing shimmer loading...');
+                return _buildShimmerLoading();
+              }
+
+              if (bookingProvider.errorMessage != null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Tabs at the left
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Transform.scale(scale: 0.85, child: _buildCustomTab('All', 0)),
-                          Transform.scale(scale: 0.85, child: _buildCustomTab('Upcoming', 1)),
-                          Transform.scale(scale: 0.85, child: _buildCustomTab('Past', 2)),
-                        ],
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: AppColors.primaryText.withOpacity(0.5),
                       ),
-                      const Spacer(),
-                      // Filter icon at the right corner
-                      GestureDetector(
-                        onTap: () {
-                          // Handle filter tap if needed
-                        },
-                        child: SizedBox(
-                          width: 36,
-                          height: 36,
-                          child: Assets.images.filter.svg(width: 36, height: 36),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'Oops! Something went wrong',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: AppColors.primaryText,
+                            ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg),
+                        child: Text(
+                          bookingProvider.errorMessage!,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.secondaryText,
+                                  ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
+                      const SizedBox(height: AppSpacing.lg),
+                      // Retry button
+                      ElevatedButton.icon(
+                        onPressed: _retryLoadBookings,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Retry'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryText,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                            vertical: AppSpacing.md,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      // Info about composite index
+                      if (bookingProvider.errorMessage!
+                              .contains('failed-precondition') ||
+                          bookingProvider.errorMessage!
+                              .contains('composite index'))
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg),
+                          child: Container(
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              border: Border.all(color: Colors.blue.shade200),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Firebase Index Required',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue.shade900,
+                                      ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'This app requires a Firestore composite index. Click the link in the error message above to create it in Firebase Console.',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: Colors.blue.shade700,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
-                ),
-                // Tab Content
-                Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                  _buildBookingsList(bookingProvider.userBookings, 'all'),
-                  _buildBookingsList(bookingProvider.upcomingBookings, 'upcoming'),
-                  _buildBookingsList(bookingProvider.pastBookings, 'past'),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+                );
+              }
+
+              return Column(
+                children: [
+                  // Custom Tab Bar
+                  // Custom Tab Bar with filter icon at right
+                  Padding(
+                    padding:
+                        const EdgeInsets.only(left: 20, right: 20, top: 16),
+                    child: Row(
+                      children: [
+                        // Tabs at the left
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Transform.scale(
+                                scale: 0.85, child: _buildCustomTab('All', 0)),
+                            Transform.scale(
+                                scale: 0.85,
+                                child: _buildCustomTab('Upcoming', 1)),
+                            Transform.scale(
+                                scale: 0.85, child: _buildCustomTab('Past', 2)),
+                          ],
+                        ),
+                        const Spacer(),
+                        // Filter icon at the right corner
+                        GestureDetector(
+                          onTap: () {
+                            // Handle filter tap if needed
+                          },
+                          child: SizedBox(
+                            width: 36,
+                            height: 36,
+                            child:
+                                Assets.images.filter.svg(width: 36, height: 36),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Tab Content
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildBookingsList(bookingProvider.userBookings, 'all'),
+                        _buildBookingsList(
+                            bookingProvider.upcomingBookings, 'upcoming'),
+                        _buildBookingsList(
+                            bookingProvider.pastBookings, 'past'),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ],
     );
@@ -278,21 +319,22 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
 
   Widget _buildBookingsList(List<BookingModel> bookings, String type) {
     final bookingProvider = context.watch<BookingProvider>();
-    
+
     debugPrint('📋 _buildBookingsList called for type: $type');
     debugPrint('   - bookings.length: ${bookings.length}');
     debugPrint('   - isLoading: ${bookingProvider.isLoading}');
-    
+
     // Show shimmer during loading or when refreshing
     if (bookingProvider.isLoading && bookings.isEmpty) {
       debugPrint('🔄 Showing shimmer for empty list...');
       return _buildShimmerBookingsList();
     }
-    
+
     if (bookings.isEmpty) {
       return RefreshIndicator(
         onRefresh: () async {
-          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+          final authProvider =
+              Provider.of<AuthProvider>(context, listen: false);
 
           if (authProvider.userModel != null) {
             await bookingProvider.refreshBookings(authProvider.userId!);
@@ -358,8 +400,9 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
                         onTap: () {
                           _showBookingDetails(booking);
                         },
-                        onCancel:
-                            booking.canBeCancelled ? () => _cancelBooking(booking) : null,
+                        onCancel: booking.canBeCancelled
+                            ? () => _cancelBooking(booking)
+                            : null,
                       ),
                     );
                   },
@@ -387,8 +430,9 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
                     onTap: () {
                       _showBookingDetails(booking);
                     },
-                    onCancel:
-                        booking.canBeCancelled ? () => _cancelBooking(booking) : null,
+                    onCancel: booking.canBeCancelled
+                        ? () => _cancelBooking(booking)
+                        : null,
                   ),
                 );
               },
@@ -506,7 +550,8 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
         children: [
           // Custom tabs shimmer
           Padding(
-            padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 16),
+            padding:
+                const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 16),
             child: Row(
               children: [
                 Row(
@@ -572,7 +617,8 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _ShimmerBox(width: double.infinity, height: 18, borderRadius: 4),
+                _ShimmerBox(
+                    width: double.infinity, height: 18, borderRadius: 4),
                 const SizedBox(height: 8),
                 _ShimmerBox(width: 150, height: 14, borderRadius: 4),
                 const SizedBox(height: 8),
@@ -692,23 +738,29 @@ class _BookingDetailsSheetState extends State<_BookingDetailsSheet> {
     });
   }
 
-  void _checkAndShowFeedbackModal() {
-    if (_currentBooking.shouldShowFeedbackModal) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => FeedbackModal(
-          booking: _currentBooking,
-          onFeedbackSubmitted: _onFeedbackSubmitted,
-        ),
-      );
-    }
+  Future<void> _checkAndShowFeedbackModal() async {
+    if (!_currentBooking.shouldShowFeedbackModal || !mounted) return;
+
+    final roomProvider = Provider.of<RoomProvider>(context, listen: false);
+    final room = await roomProvider.getRoomById(_currentBooking.roomId);
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => FeedbackModal(
+        booking: _currentBooking,
+        roomAmenities: room?.amenities ?? const [],
+        onFeedbackSubmitted: _onFeedbackSubmitted,
+      ),
+    );
   }
 
   void _onFeedbackSubmitted() {
     if (mounted) {
       // Refresh the booking to get the updated feedback status
-      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+      final bookingProvider =
+          Provider.of<BookingProvider>(context, listen: false);
       bookingProvider.getBookingById(_currentBooking.id).then((booking) {
         if (booking != null && mounted) {
           setState(() {
@@ -722,7 +774,8 @@ class _BookingDetailsSheetState extends State<_BookingDetailsSheet> {
   void _onCheckInCheckOutSubmitted() {
     if (mounted) {
       // Refresh the booking to get the updated times
-      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+      final bookingProvider =
+          Provider.of<BookingProvider>(context, listen: false);
       bookingProvider.getBookingById(_currentBooking.id).then((booking) {
         if (booking != null && mounted) {
           setState(() {
@@ -792,7 +845,8 @@ class _BookingDetailsSheetState extends State<_BookingDetailsSheet> {
                   children: [
                     // Booking ID and Status
                     _buildDetailRow('Booking ID', _currentBooking.id),
-                    _buildDetailRow('Status', _currentBooking.statusDisplayName),
+                    _buildDetailRow(
+                        'Status', _currentBooking.statusDisplayName),
 
                     const Divider(height: AppSpacing.xl),
 
@@ -800,7 +854,8 @@ class _BookingDetailsSheetState extends State<_BookingDetailsSheet> {
                     if (_currentBooking.roomName != null) ...[
                       _buildDetailRow('Room', _currentBooking.roomName!),
                       if (_currentBooking.roomLocation != null)
-                        _buildDetailRow('Location', _currentBooking.roomLocation!),
+                        _buildDetailRow(
+                            'Location', _currentBooking.roomLocation!),
                     ],
 
                     const Divider(height: AppSpacing.xl),
@@ -808,20 +863,26 @@ class _BookingDetailsSheetState extends State<_BookingDetailsSheet> {
                     // Booking Details
                     _buildDetailRow(
                         'Date', _formatDate(_currentBooking.bookingDate)),
+                    _buildDetailRow('Start Time', _currentBooking.checkInTime),
+                    _buildDetailRow('End Time', _currentBooking.checkOutTime),
                     _buildDetailRow(
-                        'Start Time', _currentBooking.checkInTime),
-                    _buildDetailRow(
-                        'End Time', _currentBooking.checkOutTime),
-                    _buildDetailRow(
-                        'Duration', _calculateDuration(_currentBooking.checkInTime, _currentBooking.checkOutTime)),
+                        'Duration',
+                        _calculateDuration(_currentBooking.checkInTime,
+                            _currentBooking.checkOutTime)),
                     if (_currentBooking.hasActualCheckTimes)
-                      _buildDetailRow('Actual Duration', _currentBooking.actualDurationLabel),
-                    _buildDetailRow('Number of Guests', '${_currentBooking.numberOfGuests} ${_currentBooking.numberOfGuests == 1 ? "person" : "people"}'),
-                    if (_currentBooking.bookedForName != null && _currentBooking.bookedForName!.isNotEmpty)
+                      _buildDetailRow('Actual Duration',
+                          _currentBooking.actualDurationLabel),
+                    _buildDetailRow('Number of Guests',
+                        '${_currentBooking.numberOfGuests} ${_currentBooking.numberOfGuests == 1 ? "person" : "people"}'),
+                    if (_currentBooking.bookedForName != null &&
+                        _currentBooking.bookedForName!.isNotEmpty)
                       _buildDetailRow('Untuk', _currentBooking.bookedForName!),
-                    if (_currentBooking.bookedForCompany != null && _currentBooking.bookedForCompany!.isNotEmpty)
-                      _buildDetailRow('Instansi', _currentBooking.bookedForCompany!),
-                    if (_currentBooking.purpose != null && _currentBooking.purpose!.isNotEmpty)
+                    if (_currentBooking.bookedForCompany != null &&
+                        _currentBooking.bookedForCompany!.isNotEmpty)
+                      _buildDetailRow('Instansi / Perusahaan',
+                          _currentBooking.bookedForCompany!),
+                    if (_currentBooking.purpose != null &&
+                        _currentBooking.purpose!.isNotEmpty)
                       _buildDetailRow('Purpose', _currentBooking.purpose!),
 
                     const SizedBox(height: AppSpacing.md),
@@ -835,6 +896,7 @@ class _BookingDetailsSheetState extends State<_BookingDetailsSheet> {
 
                     // Feedback section (for completed bookings)
                     if (_currentBooking.status == BookingStatus.completed &&
+                        _currentBooking.hasActualCheckTimes &&
                         _currentBooking.hasFeedback) ...[
                       const Divider(height: AppSpacing.xl),
                       Text(
@@ -859,18 +921,27 @@ class _BookingDetailsSheetState extends State<_BookingDetailsSheet> {
                               children: [
                                 Text(
                                   'Kepuasan: ',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.secondaryText,
                                       ),
                                 ),
                                 Text(
-                                  _currentBooking.feedbackSatisfaction == 'satisfied'
+                                  _currentBooking.feedbackSatisfaction ==
+                                          'satisfied'
                                       ? '😊 Puas'
                                       : '😞 Kurang Puas',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
                                         fontWeight: FontWeight.w600,
-                                        color: _currentBooking.feedbackSatisfaction == 'satisfied'
+                                        color: _currentBooking
+                                                    .feedbackSatisfaction ==
+                                                'satisfied'
                                             ? AppColors.successGreen
                                             : AppColors.primaryText,
                                       ),
@@ -880,7 +951,10 @@ class _BookingDetailsSheetState extends State<_BookingDetailsSheet> {
                             const SizedBox(height: AppSpacing.md),
                             Text(
                               'Alasan:',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.secondaryText,
                                   ),
@@ -888,10 +962,53 @@ class _BookingDetailsSheetState extends State<_BookingDetailsSheet> {
                             const SizedBox(height: 4),
                             Text(
                               _currentBooking.feedbackReason ?? 'N/A',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
                                     color: AppColors.primaryText,
-                              ),
+                                  ),
                             ),
+                            if (_currentBooking
+                                .feedbackComplaintItems.isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                'Kendala:',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.secondaryText,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _currentBooking.feedbackComplaintItems
+                                    .join(', '),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: AppColors.primaryText,
+                                    ),
+                              ),
+                            ],
+                            if (_currentBooking.feedbackComplaintOther !=
+                                    null &&
+                                _currentBooking
+                                    .feedbackComplaintOther!.isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                'Lainnya: ${_currentBooking.feedbackComplaintOther}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: AppColors.primaryText,
+                                    ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -918,9 +1035,11 @@ class _BookingDetailsSheetState extends State<_BookingDetailsSheet> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildDetailRow('Check-in Aktual', _currentBooking.actualCheckInTime ?? 'N/A'),
+                            _buildDetailRow('Check-in Aktual',
+                                _currentBooking.actualCheckInTime ?? 'N/A'),
                             const SizedBox(height: AppSpacing.md),
-                            _buildDetailRow('Check-out Aktual', _currentBooking.actualCheckOutTime ?? 'N/A'),
+                            _buildDetailRow('Check-out Aktual',
+                                _currentBooking.actualCheckOutTime ?? 'N/A'),
                           ],
                         ),
                       ),
@@ -981,19 +1100,19 @@ class _BookingDetailsSheetState extends State<_BookingDetailsSheet> {
         hour: int.parse(endTime.split(':')[0]),
         minute: int.parse(endTime.split(':')[1]),
       );
-      
+
       int startMinutes = start.hour * 60 + start.minute;
       int endMinutes = end.hour * 60 + end.minute;
-      
+
       // Handle case where end time is next day
       if (endMinutes < startMinutes) {
         endMinutes += 24 * 60;
       }
-      
+
       int durationMinutes = endMinutes - startMinutes;
       int hours = durationMinutes ~/ 60;
       int minutes = durationMinutes % 60;
-      
+
       if (hours > 0 && minutes > 0) {
         return '$hours hour${hours > 1 ? "s" : ""} $minutes min${minutes > 1 ? "s" : ""}';
       } else if (hours > 0) {

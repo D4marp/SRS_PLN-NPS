@@ -1,11 +1,11 @@
 {
-    "name": "RoomBooking - Office & Campus",
-    "short_name": "RoomBooking",
+    "name": "bookify_rooms",
+    "short_name": "bookify_rooms",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Office and Campus Room Booking System - Free room reservation for meetings, classes, and events",
+    "description": "A new Flutter project.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

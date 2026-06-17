@@ -2,9 +2,19 @@
 
 import { useMemo, useState } from 'react';
 import { Download, ExternalLink } from 'lucide-react';
+import {
+  buildFeedbackExportRows,
+  EXPORT_COLUMN_ORDER,
+  getRoomFacilitiesForBooking,
+  getSelectedComplaintSet,
+} from '../lib/feedback';
 
 const fieldClass =
   'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-sky-400';
+
+function FieldLabel({ children }) {
+  return <label className="mb-1 block text-xs font-semibold text-slate-700">{children}</label>;
+}
 
 function formatBookingDate(value) {
   const numericValue = Number(value || 0);
@@ -20,8 +30,55 @@ function formatBookingDate(value) {
   });
 }
 
+function columnAddress(columnIndex, rowIndex) {
+  let column = '';
+  let temp = columnIndex + 1;
+
+  while (temp > 0) {
+    const mod = (temp - 1) % 26;
+    column = String.fromCharCode(65 + mod) + column;
+    temp = Math.floor((temp - mod) / 26);
+  }
+
+  return `${column}${rowIndex}`;
+}
+
+function applyWorksheetStyles(worksheet, headers, rowCount) {
+  headers.forEach((_, columnIndex) => {
+    const cellAddress = columnAddress(columnIndex, 1);
+    if (!worksheet[cellAddress]) return;
+    worksheet[cellAddress].s = {
+      font: { bold: true, color: { rgb: 'FFFFFF' } },
+      fill: { fgColor: { rgb: '0077CC' } },
+      alignment: { horizontal: 'center', vertical: 'center' },
+      border: {
+        top: { style: 'thin', color: { rgb: '000000' } },
+        bottom: { style: 'thin', color: { rgb: '000000' } },
+        left: { style: 'thin', color: { rgb: '000000' } },
+        right: { style: 'thin', color: { rgb: '000000' } },
+      },
+    };
+  });
+
+  for (let rowIndex = 2; rowIndex <= rowCount + 1; rowIndex += 1) {
+    headers.forEach((_, columnIndex) => {
+      const cellAddress = columnAddress(columnIndex, rowIndex);
+      if (!worksheet[cellAddress]) return;
+      worksheet[cellAddress].s = {
+        border: {
+          top: { style: 'thin', color: { rgb: 'CCCCCC' } },
+          bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
+          left: { style: 'thin', color: { rgb: 'CCCCCC' } },
+          right: { style: 'thin', color: { rgb: 'CCCCCC' } },
+        },
+      };
+    });
+  }
+}
+
 export default function BookingHistoryPanel({
   bookings,
+  rooms = [],
   title = 'Riwayat Booking',
   subtitle = 'Filter riwayat booking berdasarkan status dan rentang tanggal, lalu export ke Excel.',
   showHeader = true,
@@ -30,6 +87,7 @@ export default function BookingHistoryPanel({
   previewLimit = null,
   emptyMessage = 'Belum ada riwayat booking.',
   onOpenPage,
+  filterTitle = 'Filter Riwayat Booking',
 }) {
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -66,32 +124,35 @@ export default function BookingHistoryPanel({
     return filteredBookings;
   }, [filteredBookings, previewLimit]);
 
+  const exportModel = useMemo(
+    () => buildFeedbackExportRows(filteredBookings, rooms),
+    [filteredBookings, rooms],
+  );
+
   const handleExport = async () => {
     try {
       setExporting(true);
       setFeedback('');
 
-      const { writeFile, utils } = await import('xlsx');
-      const exportData = filteredBookings.map((booking) => ({
-        Ruangan: booking.roomName || '-',
-        'Tanggal Booking': formatBookingDate(booking.bookingDate),
-        'Jam Check-in': booking.checkInTime || '-',
-        'Jam Check-out': booking.checkOutTime || '-',
-        Status: booking.status || '-',
-        Pengguna: booking.userName || '-',
-        Email: booking.userEmail || '-',
-        Untuk: booking.bookedForName || '-',
-        Instansi: booking.bookedForCompany || '-',
-        'Jumlah Tamu': booking.numberOfGuests || '-',
-        Tujuan: booking.purpose || '-',
-      }));
+      const XLSX = await import('xlsx-js-style');
+      const headers = [...EXPORT_COLUMN_ORDER, ...exportModel.facilityColumns];
+      const exportData = exportModel.rows.map((row) => {
+        const ordered = {};
+        headers.forEach((key) => {
+          ordered[key] = row[key] ?? '-';
+        });
+        return ordered;
+      });
 
-      const worksheet = utils.json_to_sheet(exportData);
-      const workbook = utils.book_new();
-      utils.book_append_sheet(workbook, worksheet, 'Booking History');
+      const worksheet = XLSX.utils.json_to_sheet(exportData, { header: headers });
+      applyWorksheetStyles(worksheet, headers, exportData.length);
+      worksheet['!cols'] = headers.map((header) => ({ wch: Math.max(String(header).length + 2, 14) }));
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Booking History');
 
       const timestamp = new Date().toISOString().slice(0, 10);
-      writeFile(workbook, `booking-history-${timestamp}.xlsx`);
+      XLSX.writeFile(workbook, `booking-history-${timestamp}.xlsx`);
       setFeedback('Data berhasil diexport ke Excel.');
     } catch (error) {
       setFeedback(error.message || 'Gagal export data ke Excel');
@@ -128,33 +189,45 @@ export default function BookingHistoryPanel({
       ) : null}
 
       {showFilters ? (
-        <div className="grid gap-3 sm:grid-cols-3">
-          <select
-            className={fieldClass}
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-          >
-            <option value="">Semua Status</option>
-            <option value="pending">Pending</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="rejected">Rejected</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="completed">Completed</option>
-          </select>
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-slate-900">{filterTitle}</h3>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <FieldLabel>Status</FieldLabel>
+              <select
+                className={fieldClass}
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                <option value="">Semua Status</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="rejected">Rejected</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
 
-          <input
-            type="date"
-            className={fieldClass}
-            value={dateFrom}
-            onChange={(event) => setDateFrom(event.target.value)}
-          />
+            <div>
+              <FieldLabel>Tanggal Awal Pencarian</FieldLabel>
+              <input
+                type="date"
+                className={fieldClass}
+                value={dateFrom}
+                onChange={(event) => setDateFrom(event.target.value)}
+              />
+            </div>
 
-          <input
-            type="date"
-            className={fieldClass}
-            value={dateTo}
-            onChange={(event) => setDateTo(event.target.value)}
-          />
+            <div>
+              <FieldLabel>Tanggal Akhir Pencarian</FieldLabel>
+              <input
+                type="date"
+                className={fieldClass}
+                value={dateTo}
+                onChange={(event) => setDateTo(event.target.value)}
+              />
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -189,7 +262,7 @@ export default function BookingHistoryPanel({
           {emptyMessage}
         </div>
       ) : (
-        <div className={previewLimit ? 'space-y-3 max-h-[420px] overflow-auto pr-1' : 'space-y-3 max-h-[65vh] overflow-auto pr-1'}>
+        <div className={previewLimit ? 'max-h-[420px] space-y-3 overflow-auto pr-1' : 'max-h-[65vh] space-y-3 overflow-auto pr-1'}>
           {visibleBookings.map((booking) => (
             <article key={booking.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <div className="flex items-start justify-between gap-3">
@@ -204,6 +277,7 @@ export default function BookingHistoryPanel({
                 </span>
               </div>
               <p className="mt-2 text-xs text-slate-700">
+                {booking.picInput ? `${booking.picInput} • ` : ''}
                 {booking.userName || 'Unknown User'} • Guests: {booking.numberOfGuests}
               </p>
               {booking.actualDurationMinutes != null || booking.actualCheckInTime || booking.actualCheckOutTime ? (
@@ -213,16 +287,59 @@ export default function BookingHistoryPanel({
                 </p>
               ) : null}
               {booking.purpose ? <p className="mt-2 line-clamp-2 text-xs text-slate-600">{booking.purpose}</p> : null}
-              
+
               {booking.feedback ? (
                 <div className="mt-3 space-y-2 rounded-lg border border-slate-200 bg-white p-2">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{booking.feedback.satisfactionLevel === 'satisfied' ? '😊' : '😞'}</span>
                     <span className="text-xs font-semibold text-slate-700">
-                      {booking.feedback.satisfactionLevel === 'satisfied' ? 'Puas' : 'Kurang Puas'}
+                      {booking.feedback.satisfactionLevel === 'satisfied' ? 'Puas' : 'Tidak Puas'}
                     </span>
                   </div>
-                  <p className="line-clamp-2 text-xs text-slate-600">{booking.feedback.reason}</p>
+                  {booking.feedback.satisfactionLevel !== 'satisfied' ? (
+                    <>
+                      <p className="line-clamp-2 text-xs text-slate-600">{booking.feedback.reason}</p>
+                      {(() => {
+                        const facilities = getRoomFacilitiesForBooking(booking, rooms);
+                        const selectedSet = getSelectedComplaintSet(booking);
+
+                        if (facilities.length === 0) {
+                          return null;
+                        }
+
+                        return (
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
+                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                              Fasilitas Ruangan
+                            </p>
+                            <div className="grid gap-1 sm:grid-cols-2">
+                              {facilities.map((facility) => {
+                                const selected = selectedSet.has(facility.toLowerCase());
+                                return (
+                                  <div key={facility} className="flex items-center gap-2 text-xs text-slate-700">
+                                    <span
+                                      className={[
+                                        'inline-flex h-4 w-4 items-center justify-center rounded-full border text-[10px] font-bold',
+                                        selected
+                                          ? 'border-red-200 bg-red-50 text-red-700'
+                                          : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                                      ].join(' ')}
+                                    >
+                                      {selected ? '!' : '✓'}
+                                    </span>
+                                    <span className="truncate">{facility}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      {booking.feedback.complaintOther ? (
+                        <p className="text-xs text-slate-600">Keluhan Lainnya: {booking.feedback.complaintOther}</p>
+                      ) : null}
+                    </>
+                  ) : null}
                 </div>
               ) : null}
             </article>

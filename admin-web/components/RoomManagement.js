@@ -1,21 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Trash2, Plus } from 'lucide-react';
-
-const ROOM_CLASSES = [
-  'Meeting Room',
-  'Conference Room',
-  'Auditorium',
-  'Study Room',
-  'Training Room',
-  'Board Room',
-  'Boardroom',
-  'Office',
-  'Class Room',
-  'Lab',
-  'Lecture Hall',
-];
+import { useEffect, useRef, useState } from 'react';
+import { Trash2, Plus, ImagePlus, X } from 'lucide-react';
+import { uploadRoomImage, deleteRoomImage, listFacilities } from '../lib/api';
 
 const fieldClass =
   'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-sky-400';
@@ -23,6 +10,7 @@ const fieldClass =
 export default function RoomManagement({
   rooms,
   loading,
+  token,
   onCreateRoom,
   onUpdateRoom,
   onDeleteRoom,
@@ -34,20 +22,66 @@ export default function RoomManagement({
   const [formState, setFormState] = useState({
     name: '',
     location: '',
+    floor: '',
     maxGuests: 1,
-    roomClass: 'Meeting Room',
-    description: '',
+    amenities: [],
   });
+  const [facilities, setFacilities] = useState([]);
+  const [facilitiesLoading, setFacilitiesLoading] = useState(false);
+  const [facilitiesError, setFacilitiesError] = useState('');
+  const [pendingImages, setPendingImages] = useState([]);
+  const [roomImages, setRoomImages] = useState([]);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    setFacilitiesLoading(true);
+    setFacilitiesError('');
+    listFacilities()
+      .then((data) => {
+        if (!active) return;
+        setFacilities(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setFacilitiesError(err.message || 'Gagal memuat fasilitas');
+      })
+      .finally(() => {
+        if (!active) return;
+        setFacilitiesLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const toggleAmenity = (value) => {
+    setFormState((prev) => {
+      const hasValue = prev.amenities.includes(value);
+      return {
+        ...prev,
+        amenities: hasValue
+          ? prev.amenities.filter((item) => item !== value)
+          : [...prev.amenities, value],
+      };
+    });
+  };
 
   const handleOpenCreate = () => {
     setEditingRoom(null);
     setFormState({
       name: '',
       location: '',
+      floor: '',
       maxGuests: 1,
-      roomClass: 'Meeting Room',
-      description: '',
+      amenities: [],
     });
+    setRoomImages([]);
+    setImageError('');
+    setPendingImages([]);
     setShowForm(true);
   };
 
@@ -56,16 +90,76 @@ export default function RoomManagement({
     setFormState({
       name: room.name || '',
       location: room.location || '',
+      floor: room.floor || '',
       maxGuests: room.maxGuests || 1,
-      roomClass: room.roomClass || 'Meeting Room',
-      description: room.description || '',
+      amenities: Array.isArray(room.amenities) ? room.amenities : [],
     });
+    setRoomImages(room.imageUrls || []);
+    setImageError('');
+    setPendingImages([]);
     setShowForm(true);
   };
 
   const handleCancel = () => {
     setShowForm(false);
     setEditingRoom(null);
+    setRoomImages([]);
+    setImageError('');
+    setPendingImages([]);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setImageUploading(true);
+    setImageError('');
+    try {
+      if (editingRoom) {
+        // Jika edit: upload langsung ke server
+        const data = await uploadRoomImage(token, editingRoom.id, file);
+        setRoomImages((prev) => [...prev, data.imageUrl]);
+      } else {
+        // Jika create: simpan file ke pending untuk diupload nanti
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setRoomImages((prev) => [...prev, event.target.result]);
+        };
+        reader.readAsDataURL(file);
+        setPendingImages((prev) => [...prev, file]);
+      }
+    } catch (err) {
+      setImageError(err.message || 'Upload gagal');
+    } finally {
+      setImageUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteImage = async (imageUrl) => {
+    if (!window.confirm('Hapus gambar ini?')) return;
+    setImageError('');
+    
+    if (editingRoom) {
+      // Jika edit: hapus dari server
+      try {
+        await deleteRoomImage(token, editingRoom.id, imageUrl);
+        setRoomImages((prev) => prev.filter((u) => u !== imageUrl));
+      } catch (err) {
+        setImageError(err.message || 'Gagal menghapus gambar');
+      }
+    } else {
+      // Jika create: hapus dari state lokal dan pending
+      const imageIndex = roomImages.indexOf(imageUrl);
+      if (imageIndex !== -1) {
+        setRoomImages((prev) => prev.filter((u) => u !== imageUrl));
+        setPendingImages((prev) => {
+          const newPending = [...prev];
+          newPending.splice(imageIndex, 1);
+          return newPending;
+        });
+      }
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -75,20 +169,40 @@ export default function RoomManagement({
       window.alert('Nama ruangan tidak boleh kosong');
       return;
     }
+    if (!formState.location.trim()) {
+      window.alert('Lokasi tidak boleh kosong');
+      return;
+    }
+    if (!formState.floor.trim()) {
+      window.alert('Lantai tidak boleh kosong');
+      return;
+    }
 
     const payload = {
       name: formState.name.trim(),
-      location: formState.location.trim() || null,
+      location: formState.location.trim(),
+      floor: formState.floor.trim(),
       maxGuests: Number(formState.maxGuests) || 1,
-      roomClass: formState.roomClass,
-      description: formState.description.trim() || null,
+      amenities: formState.amenities,
     };
 
     try {
       if (editingRoom) {
         await onUpdateRoom(editingRoom.id, payload);
       } else {
-        await onCreateRoom(payload);
+        // Create room terlebih dahulu
+        const newRoom = await onCreateRoom(payload);
+        
+        // Kemudian upload pending images jika ada
+        if (pendingImages.length > 0 && newRoom && newRoom.id) {
+          for (const file of pendingImages) {
+            try {
+              await uploadRoomImage(token, newRoom.id, file);
+            } catch (err) {
+              console.error('Gagal upload gambar:', err);
+            }
+          }
+        }
       }
       handleCancel();
     } catch (err) {
@@ -123,36 +237,44 @@ export default function RoomManagement({
           </h3>
 
           <div className="grid gap-3">
-            <input
-              className={fieldClass}
-              type="text"
-              value={formState.name}
-              onChange={(e) => setFormState((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="Nama ruangan (wajib)"
-              required
-            />
-
-            <input
-              className={fieldClass}
-              type="text"
-              value={formState.location}
-              onChange={(e) => setFormState((prev) => ({ ...prev, location: e.target.value }))}
-              placeholder="Lokasi (opsional)"
-            />
-
-            <div className="grid grid-cols-2 gap-3">
-              <select
+            <div className="grid grid-cols-[130px_1fr] items-center gap-3">
+              <label className="text-xs font-semibold text-slate-700">Nama Ruangan *</label>
+              <input
                 className={fieldClass}
-                value={formState.roomClass}
-                onChange={(e) => setFormState((prev) => ({ ...prev, roomClass: e.target.value }))}
-              >
-                {ROOM_CLASSES.map((cls) => (
-                  <option key={cls} value={cls}>
-                    {cls}
-                  </option>
-                ))}
-              </select>
+                type="text"
+                value={formState.name}
+                onChange={(e) => setFormState((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="Nama ruangan"
+                required
+              />
+            </div>
 
+            <div className="grid grid-cols-[130px_1fr] items-center gap-3">
+              <label className="text-xs font-semibold text-slate-700">Lokasi *</label>
+              <input
+                className={fieldClass}
+                type="text"
+                value={formState.location}
+                onChange={(e) => setFormState((prev) => ({ ...prev, location: e.target.value }))}
+                placeholder="Lokasi ruangan"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-[130px_1fr] items-center gap-3">
+              <label className="text-xs font-semibold text-slate-700">Lantai *</label>
+              <input
+                className={fieldClass}
+                type="text"
+                value={formState.floor}
+                onChange={(e) => setFormState((prev) => ({ ...prev, floor: e.target.value }))}
+                placeholder="Lantai ruangan"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-[130px_1fr] items-center gap-3">
+              <label className="text-xs font-semibold text-slate-700">Kapasitas</label>
               <input
                 className={fieldClass}
                 type="number"
@@ -161,17 +283,81 @@ export default function RoomManagement({
                 onChange={(e) =>
                   setFormState((prev) => ({ ...prev, maxGuests: parseInt(e.target.value, 10) || 1 }))
                 }
-                placeholder="Kapasitas"
+                placeholder="Kapasitas maksimum"
               />
             </div>
 
-            <textarea
-              className={`${fieldClass} !h-auto resize-none py-2`}
-              value={formState.description}
-              onChange={(e) => setFormState((prev) => ({ ...prev, description: e.target.value }))}
-              placeholder="Deskripsi (opsional)"
-              rows="2"
-            />
+            <div className="grid grid-cols-[130px_1fr] gap-3">
+              <label className="pt-2 text-xs font-semibold text-slate-700">Fasilitas Ruangan</label>
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+              {facilitiesLoading ? (
+                <p className="text-xs text-slate-500">Memuat fasilitas...</p>
+              ) : facilitiesError ? (
+                <p className="text-xs text-red-500">{facilitiesError}</p>
+              ) : facilities.length === 0 ? (
+                <p className="text-xs text-slate-500">Belum ada fasilitas.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {facilities.map((facility) => (
+                    <label
+                      key={facility.id}
+                      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700"
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-sky-600"
+                        checked={formState.amenities.includes(facility.name)}
+                        onChange={() => toggleAmenity(facility.name)}
+                      />
+                      {facility.name}
+                    </label>
+                  ))}
+                </div>
+              )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-[130px_1fr] gap-3">
+              <label className="pt-2 text-xs font-semibold text-slate-700">Gambar Ruangan</label>
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+
+              {roomImages.length > 0 ? (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {roomImages.map((url) => (
+                    <div key={url} className="relative h-20 w-20 overflow-hidden rounded-lg border border-slate-200">
+                      <img src={url} alt="room" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteImage(url)}
+                        className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mb-2 text-xs text-slate-500">Belum ada gambar.</p>
+              )}
+
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-sky-300 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-600 hover:bg-sky-100">
+                <ImagePlus size={13} />
+                {imageUploading ? 'Mengupload...' : 'Tambah Gambar'}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                  disabled={imageUploading}
+                />
+              </label>
+
+              {imageError && (
+                <p className="mt-1.5 text-xs text-red-500">{imageError}</p>
+              )}
+              </div>
+            </div>
 
             <div className="flex gap-2">
               <button
@@ -212,7 +398,7 @@ export default function RoomManagement({
               <div className="mb-3 flex items-start justify-between gap-2">
                 <div>
                   <p className="font-semibold text-slate-900">{room.name}</p>
-                  <p className="text-xs text-slate-600">{room.roomClass}</p>
+                  <p className="text-xs text-slate-600">Lantai: {room.floor}</p>
                 </div>
                 <button
                   type="button"
@@ -228,10 +414,25 @@ export default function RoomManagement({
                 </button>
               </div>
 
+              {room.imageUrls && room.imageUrls.length > 0 && (
+                <div className="mb-2 overflow-hidden rounded-lg">
+                  <img
+                    src={room.imageUrls[0]}
+                    alt={room.name}
+                    className="h-28 w-full object-cover"
+                  />
+                </div>
+              )}
+
               <div className="space-y-1 text-xs text-slate-700">
                 {room.location && <p>📍 {room.location}</p>}
                 <p>👥 Kapasitas: {room.maxGuests} orang</p>
-                {room.description && <p className="text-slate-600">{room.description}</p>}
+                {room.amenities && room.amenities.length > 0 && (
+                  <p className="text-slate-600">🔧 {room.amenities.join(', ')}</p>
+                )}
+                {room.imageUrls && room.imageUrls.length > 1 && (
+                  <p className="text-slate-500">🖼 {room.imageUrls.length} foto</p>
+                )}
               </div>
 
               <button

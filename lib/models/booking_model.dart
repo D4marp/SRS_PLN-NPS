@@ -11,7 +11,7 @@ class BookingModel {
   final String userId;
   final String roomId;
   final DateTime bookingDate; // Tanggal booking (same day booking only)
-  final String checkInTime;  // Format: "HH:mm" e.g., "14:00"
+  final String checkInTime; // Format: "HH:mm" e.g., "14:00"
   final String checkOutTime; // Format: "HH:mm" e.g., "11:00"
   final int numberOfGuests;
   final BookingStatus status;
@@ -30,6 +30,8 @@ class BookingModel {
   final String? roomImageUrl;
   final String? bookedForName;
   final String? bookedForCompany;
+  final String? pihak1;
+  final String? pihak2;
 
   // User details for display
   final String? userName;
@@ -39,6 +41,8 @@ class BookingModel {
   final bool hasFeedback;
   final String? feedbackSatisfaction; // "satisfied" or "unsatisfied"
   final String? feedbackReason;
+  final List<String> feedbackComplaintItems;
+  final String? feedbackComplaintOther;
 
   // Early check-in/check-out fields
   final String? actualCheckInTime; // Format: "HH:mm"
@@ -65,11 +69,15 @@ class BookingModel {
     this.roomImageUrl,
     this.bookedForName,
     this.bookedForCompany,
+    this.pihak1,
+    this.pihak2,
     this.userName,
     this.userEmail,
     this.hasFeedback = false,
     this.feedbackSatisfaction,
     this.feedbackReason,
+    this.feedbackComplaintItems = const [],
+    this.feedbackComplaintOther,
     this.actualCheckInTime,
     this.actualCheckOutTime,
     this.actualDurationMinutes,
@@ -78,7 +86,8 @@ class BookingModel {
   factory BookingModel.fromJson(Map<String, dynamic> json) {
     final feedbackJson = json['feedback'];
     final hasNestedFeedback = feedbackJson is Map<String, dynamic>;
-    final nestedFeedback = hasNestedFeedback ? Map<String, dynamic>.from(feedbackJson) : null;
+    final nestedFeedback =
+        hasNestedFeedback ? Map<String, dynamic>.from(feedbackJson) : null;
 
     return BookingModel(
       id: json['id'] ?? '',
@@ -108,11 +117,19 @@ class BookingModel {
       roomImageUrl: json['roomImageUrl'],
       bookedForName: json['bookedForName'],
       bookedForCompany: json['bookedForCompany'],
+      pihak1: json['pihak1'] ?? json['pihak_1'] ?? json['paraPihak'],
+      pihak2: json['pihak2'] ?? json['pihak_2'] ?? json['divisi'],
       userName: json['userName'],
       userEmail: json['userEmail'],
       hasFeedback: json['hasFeedback'] ?? hasNestedFeedback,
-      feedbackSatisfaction: nestedFeedback?['satisfactionLevel'] ?? json['feedbackSatisfaction'],
+      feedbackSatisfaction:
+          nestedFeedback?['satisfactionLevel'] ?? json['feedbackSatisfaction'],
       feedbackReason: nestedFeedback?['reason'] ?? json['feedbackReason'],
+      feedbackComplaintItems: _parseFeedbackComplaintItems(
+        nestedFeedback?['complaintItems'] ?? json['feedbackComplaintItems'],
+      ),
+      feedbackComplaintOther:
+          nestedFeedback?['complaintOther'] ?? json['feedbackComplaintOther'],
       actualCheckInTime: json['actualCheckInTime'],
       actualCheckOutTime: json['actualCheckOutTime'],
       actualDurationMinutes: json['actualDurationMinutes'] is int
@@ -144,11 +161,15 @@ class BookingModel {
       'roomImageUrl': roomImageUrl,
       'bookedForName': bookedForName,
       'bookedForCompany': bookedForCompany,
+      'pihak1': pihak1,
+      'pihak2': pihak2,
       'userName': userName,
       'userEmail': userEmail,
       'hasFeedback': hasFeedback,
       'feedbackSatisfaction': feedbackSatisfaction,
       'feedbackReason': feedbackReason,
+      'feedbackComplaintItems': feedbackComplaintItems,
+      'feedbackComplaintOther': feedbackComplaintOther,
       'actualCheckInTime': actualCheckInTime,
       'actualCheckOutTime': actualCheckOutTime,
       'actualDurationMinutes': actualDurationMinutes,
@@ -175,11 +196,15 @@ class BookingModel {
     String? roomImageUrl,
     String? bookedForName,
     String? bookedForCompany,
+    String? pihak1,
+    String? pihak2,
     String? userName,
     String? userEmail,
     bool? hasFeedback,
     String? feedbackSatisfaction,
     String? feedbackReason,
+    List<String>? feedbackComplaintItems,
+    String? feedbackComplaintOther,
     String? actualCheckInTime,
     String? actualCheckOutTime,
     int? actualDurationMinutes,
@@ -204,15 +229,39 @@ class BookingModel {
       roomImageUrl: roomImageUrl ?? this.roomImageUrl,
       bookedForName: bookedForName ?? this.bookedForName,
       bookedForCompany: bookedForCompany ?? this.bookedForCompany,
+      pihak1: pihak1 ?? this.pihak1,
+      pihak2: pihak2 ?? this.pihak2,
       userName: userName ?? this.userName,
       userEmail: userEmail ?? this.userEmail,
       hasFeedback: hasFeedback ?? this.hasFeedback,
       feedbackSatisfaction: feedbackSatisfaction ?? this.feedbackSatisfaction,
       feedbackReason: feedbackReason ?? this.feedbackReason,
+      feedbackComplaintItems:
+          feedbackComplaintItems ?? this.feedbackComplaintItems,
+      feedbackComplaintOther:
+          feedbackComplaintOther ?? this.feedbackComplaintOther,
       actualCheckInTime: actualCheckInTime ?? this.actualCheckInTime,
       actualCheckOutTime: actualCheckOutTime ?? this.actualCheckOutTime,
-      actualDurationMinutes: actualDurationMinutes ?? this.actualDurationMinutes,
+      actualDurationMinutes:
+          actualDurationMinutes ?? this.actualDurationMinutes,
     );
+  }
+
+  static List<String> _parseFeedbackComplaintItems(dynamic value) {
+    if (value is List) {
+      return value
+          .map((item) => item.toString())
+          .where((item) => item.trim().isNotEmpty)
+          .toList();
+    }
+    if (value is String && value.trim().isNotEmpty) {
+      return value
+          .split(',')
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+    return const [];
   }
 
   // Computed properties
@@ -240,11 +289,15 @@ class BookingModel {
   }
 
   bool get shouldShowFeedbackModal {
-    return status == BookingStatus.completed && !hasFeedback;
+    return status == BookingStatus.completed &&
+        actualCheckOutTime != null &&
+        actualCheckOutTime!.isNotEmpty &&
+        !hasFeedback;
   }
 
   bool get shouldShowEarlyCheckInCheckOut {
-    return (status == BookingStatus.confirmed || status == BookingStatus.pending);
+    return (status == BookingStatus.confirmed ||
+        status == BookingStatus.pending);
   }
 
   bool get hasActualCheckTimes {
@@ -276,7 +329,10 @@ class BookingModel {
     final startMinute = int.tryParse(start[1]);
     final endHour = int.tryParse(end[0]);
     final endMinute = int.tryParse(end[1]);
-    if (startHour == null || startMinute == null || endHour == null || endMinute == null) {
+    if (startHour == null ||
+        startMinute == null ||
+        endHour == null ||
+        endMinute == null) {
       return '-';
     }
 

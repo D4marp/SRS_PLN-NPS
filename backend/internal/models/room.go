@@ -39,16 +39,16 @@ type Room struct {
 
 type CreateRoomRequest struct {
 	Name          string    `json:"name" binding:"required,min=2,max=255"`
-	Description   string    `json:"description" binding:"required"`
+	Description   string    `json:"description"`
 	Location      string    `json:"location" binding:"required"`
-	City          string    `json:"city" binding:"required"`
-	RoomClass     RoomClass `json:"roomClass" binding:"required"`
+	City          string    `json:"city"`
+	RoomClass     RoomClass `json:"roomClass"`
 	Amenities     []string  `json:"amenities"`
 	HasAC         bool      `json:"hasAC"`
 	IsAvailable   bool      `json:"isAvailable"`
-	MaxGuests     int       `json:"maxGuests" binding:"required,min=1"`
-	ContactNumber string    `json:"contactNumber" binding:"required"`
-	Floor         *string   `json:"floor"`
+	MaxGuests     int       `json:"maxGuests"`
+	ContactNumber string    `json:"contactNumber"`
+	Floor         *string   `json:"floor" binding:"required"`
 	Building      *string   `json:"building"`
 }
 
